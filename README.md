@@ -1,6 +1,6 @@
 [![EduCATS](./graphics/banner.png)](https://educats.bntu.by/)
 
-# EduCATS Xamarin
+# EduCATS MAUI
 
 [![Framework](./graphics/badge-xamarin.svg)](https://github.com/xamarin/Xamarin.Forms)
 [![Latest GitHub release)](https://img.shields.io/github/v/release/ilyalehchylin/educats-xamarin?logo=github)](https://github.com/ilyalehchylin/educats-xamarin/releases)
