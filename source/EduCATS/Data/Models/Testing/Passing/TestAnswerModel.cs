@@ -16,8 +16,8 @@ namespace EduCATS.Data.Models
 		/// <summary>
 		/// Is answer correct.
 		/// </summary>
-		[JsonProperty("ÑorrectnessIndicator")]
-		public int ÑorrectnessIndicator { get; set; }
+		[JsonProperty("CorrectnessIndicator")]
+		public int CorrectnessIndicator { get; set; }
 
 		/// <summary>
 		/// Answer ID.

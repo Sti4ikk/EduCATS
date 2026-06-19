@@ -288,6 +288,11 @@ namespace EduCATS.Pages.Statistics.Base.Views
 				VerticalOptions = LayoutOptions.Fill
 			};
 
+			polarChart.PrimaryAxis = new CategoryAxis
+			{
+				ShowMajorGridLines = true
+			};
+
 			polarChart.SecondaryAxis = new NumericalAxis
 			{
 				Minimum = 0,

@@ -21,7 +21,7 @@ namespace EduCATS.Pages.Testing.Passing.Models
 			QuestionType = questionType;
 			Content = answerModel.Content;
 			IsSelected = false;
-			CorrectnessIndicator = answerModel.ÑorrectnessIndicator;
+			CorrectnessIndicator = answerModel.CorrectnessIndicator;
 		}
 	}
 }

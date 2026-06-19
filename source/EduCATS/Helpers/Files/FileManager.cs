@@ -15,7 +15,8 @@ namespace EduCATS.Helpers.Files
 		/// <param name="path">File path.</param>
 		public void Create(string path)
 		{
-			File.Create(path);
+			using (File.Create(path)) {
+			}
 		}
 
 		/// <summary>
@@ -90,4 +91,3 @@ namespace EduCATS.Helpers.Files
 		}
 	}
 }
-

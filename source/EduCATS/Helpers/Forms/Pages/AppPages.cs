@@ -44,13 +44,19 @@ namespace EduCATS.Helpers.Forms.Pages
 	/// </summary>
 	public class AppPages : IPages
 	{
+		Page rootPage
+		{
+			get => Application.Current.Windows[0].Page;
+			set => Application.Current.Windows[0].Page = value;
+		}
+
 		/// <summary>
-		/// Property for getting and setting <see cref="Application.Current.Windows[0].Page"/>.
+		/// Navigation page for the current application root or selected tab.
 		/// </summary>
 		NavigationPage mainPage
 		{
-			get => Application.Current.Windows[0].Page as NavigationPage;
-			set => Application.Current.Windows[0].Page = value;
+			get => rootPage as NavigationPage ??
+				(rootPage as TabbedPage)?.CurrentPage as NavigationPage;
 		}
 
 		/// <summary>
@@ -248,7 +254,7 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// </summary>
 		/// <param name="newPage">Page to set.</param>
 		void switchMainPage(Page newPage) =>
-			mainPage = getNavigationPage(newPage);
+			rootPage = newPage is TabbedPage ? newPage : getNavigationPage(newPage);
 
 		/// <summary>
 		/// Push a page to existing navigation stack.
@@ -300,4 +306,3 @@ namespace EduCATS.Helpers.Forms.Pages
 			await pushPage(new SaveSingleStudentMarkPageView(title, name, Marks, prOrLabStat, sub), title);
 	}
 }
-

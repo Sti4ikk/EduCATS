@@ -22,28 +22,20 @@ namespace EduCATS.Helpers.Forms.Converters
 			var metrics = value as List<StatsChartEntryModel>;
 			if (metrics == null || metrics.Count == 0) return null;
 
-			// 1. Создаем сам график
-			var chart = new SfPolarChart
-			{
-				GridLineType = PolarChartGridLineType.Polygon, // Делаем его похожим на радар (многоугольник)
-				PrimaryAxis = new NumericalAxis { ShowMajorGridLines = true, IsVisible = false },
-				SecondaryAxis = new NumericalAxis { Minimum = 0, Maximum = 10, IsVisible = false }
-			};
-
-			// 2. Создаем серию данных (Radar/Polar Line)
+			// Создаём серию данных (Radar/Polar Line)
 			var series = new PolarLineSeries
 			{
 				ItemsSource = metrics,
 				XBindingPath = "Type", // Укажите правильное поле для подписей (например, название предмета)
 				YBindingPath = "Value",
+				Fill = new SolidColorBrush(_lineColor),
 				StrokeWidth = 2,
 				ShowMarkers = true,
 				MarkerSettings = new ChartMarkerSettings { Width = 10, Height = 10 }
 			};
 
-			chart.Series.Add(series);
-
-			return chart;
+			// SfPolarChart.Series ожидает коллекцию серий, а не сам график
+			return new ChartSeriesCollection { series };
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

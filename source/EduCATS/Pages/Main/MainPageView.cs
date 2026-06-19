@@ -17,8 +17,6 @@ namespace EduCATS.Pages.Main
 {
 	public class MainPageView : TabbedPage
 	{
-		const double _tabHeight = 10;
-
 		public MainPageView()
 		{
 			setAndroidConfiguration();
@@ -33,7 +31,6 @@ namespace EduCATS.Pages.Main
 			BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor);
 			SelectedTabColor = Color.FromArgb(Theme.Current.MainSelectedTabColor);
 			UnselectedTabColor = Color.FromArgb(Theme.Current.MainUnselectedTabColor);
-			HeightRequest = _tabHeight;
 		}
 
 		void setPages()
