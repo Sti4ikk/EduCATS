@@ -1,0 +1,290 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using EduCATS.Networking.AppServices;
+using EduCATS.Networking.Models.Testing;
+
+namespace EduCATS.Data
+{
+	public static partial class DataAccess
+	{
+		/// <summary>
+		/// Login callback.
+		/// </summary>
+		/// <param name="username">Username.</param>
+		/// <param name="password">Password.</param>
+		/// <returns>User data.</returns>
+		static async Task<object> loginCallback(
+			string username, string password) => await AppServices.Login(username, password);
+		
+		static async Task<object> getAccountDataCallback() => await AppServices.GetAccountData();
+
+		static async Task<object> getTokenCallback(
+			string username, string password) => await AppServices.GetToken(username, password);
+
+		static async Task<object> getLecturesCallbackTest(
+			int subjectId, int groupId) => await AppServices.GetLecturesEducatsBy(subjectId, groupId);
+
+		static async Task<object> deleteAccountCallback() => await AppServices.DeleteAccount();
+
+		/// <summary>
+		/// Profile callback.
+		/// </summary>
+		/// <param name="username">Username.</param>
+		/// <returns>User profile data.</returns>
+		static async Task<object> getProfileCallback(
+			string username) => await AppServices.GetProfileInfo(username);
+
+		/// <summary>
+		/// News callback.
+		/// </summary>
+		/// <param name="username">Username.</param>
+		/// <returns>News data.</returns>
+		static async Task<object> getNewsCallback(
+			string username) => await AppServices.GetNews(username);
+
+		/// <summary>
+		/// Subjects callback.
+		/// </summary>
+		/// <param name="username">Username.</param>
+		/// <returns>Subjects data.</returns>
+		static async Task<object> getSubjectsCallback(
+			string username) => await AppServices.GetProfileInfoSubjects(username);
+
+		/// <summary>
+		/// Lectures callback.
+		/// </summary>
+		/// <param name="subjectId">SubjectId.</param>
+		/// <returns>Data lectures.</returns>
+		static async Task<object> getInfoLecturesCallback(
+			int subjectId) => await AppServices.GetInfoLecturers(subjectId);
+
+		/// <summary>
+		/// Subject modules callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <returns>Subject modules data.</returns>
+		static async Task<object> getSubjectModulesCallback(
+			int subjectId) => await AppServices.GetSubjectModules(subjectId);
+
+		/// <summary>
+		/// Calendar callback.
+		/// </summary>
+		/// <param name="username">Username.</param>
+		/// <returns>Calendar data.</returns>
+		static async Task<object> getCalendarCallback(
+			string username) => await AppServices.GetProfileInfoCalendar(username);
+
+		/// <summary>
+		/// Schedule callback.
+		/// </summary>
+		/// <param name="date">Date.</param>
+		/// <returns>Calendar data.</returns>
+		static async Task<object> getScheduleCallback(
+			string date) => await AppServices.GetSchedule(date);
+
+		/// <summary>
+		/// Schedule callback.
+		/// </summary>
+		/// <param name="dateStart">Start date.</param>
+		/// <param name="dateEnd">End date.</param>
+		/// <returns>Calendar data.</returns>
+		static async Task<object> getScheduleCallback(
+			string dateStart, string dateEnd) => await AppServices.GetSchedule(dateStart, dateEnd);
+
+		static async Task<object> getDiplomProjectConsultationCallback(int count, int page) =>
+			await AppServices.GetDiplomProjectConsultation(count, page);
+
+		static async Task<object> getCourseProjectConsultationCallback(int count, int page) =>
+			await AppServices.GetCourseProjectConsultation(count, page);
+
+		static async Task<object> getProfileInfoByIdCallback(int userId) =>
+			await AppServices.GetProfileInfoById(userId);
+
+		/// <summary>
+		/// Statistics callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="groupId">Group ID.</param>
+		/// <returns>Statistics data.</returns>
+		static async Task<object> getStudentsStatsCallback(
+			int subjectId, int groupId) => await AppServices.GetStudentsStatistics(subjectId, groupId);
+
+		static async Task<object> getStudentStatisticsSummaryCallback() =>
+			await AppServices.GetStudentStatisticsSummary();
+
+		static async Task<object> getTeacherStatisticsSummaryCallback() =>
+			await AppServices.GetTeacherStatisticsSummary();
+
+		static async Task<object> getStatsCallback(
+			int subjectId, int groupId) => await AppServices.GetStatistics(subjectId, groupId);
+
+		static async Task<object> getTestStatsCallback(
+			int subjectId, int groupId) => await AppServices.GetTestStatistics(subjectId, groupId);
+
+		static async Task<object> getTestPracticialStatsCallback(
+			int subjectId, int groupId) => await AppServices.GetPracticials(subjectId, groupId);
+
+		static async Task<object> getTestPractScheduleCallbak(
+			int subjectId) => await AppServices.GetPractTestStatistics(subjectId);
+
+		static async Task<object> getTestPractScheduleCallbak(
+			int subjectId, int groupId) => await AppServices.GetPractTestStatistics(subjectId, groupId);
+
+		/// <summary>
+		/// Groups callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <returns>Group data.</returns>
+		static async Task<object> getGroupsCallback(
+			int subjectId) => await AppServices.GetOnlyGroups(subjectId);
+
+		/// <summary>
+		/// Groups data callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <returns>Group data.</returns>
+		static async Task<object> getGroupsDataCallback() => await AppServices.GetGroupsData();
+
+		/// <summary>
+		/// Laboratory works callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="groupId">Group ID.</param>
+		/// <returns>Laboratory works data.</returns>
+		static async Task<object> getLabsCallback(
+			int subjectId, int groupId) => await AppServices.GetLabs(subjectId, groupId);
+		static async Task<object> getLabsCallback(
+			int subjectId) => await AppServices.GetLabs(subjectId);
+
+		/// <summary>
+		/// Laboratory works callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="groupId">Group ID.</param>
+		/// <returns>Laboratory works data.</returns>
+		static async Task<object> getTestLabsCallback(
+			int subjectId, int groupId) => await AppServices.GetLabs(subjectId, groupId);
+		static async Task<object> getTestLabsCallback(
+			int subjectId) => await AppServices.GetLabs(subjectId);
+
+		/// <summary>
+		/// Lectures callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="groupId">Group ID.</param>
+		/// <returns>Lectures data.</returns>
+		static async Task<object> getLecturesCallback(
+			int subjectId, int groupId) => await AppServices.GetLectures(subjectId, groupId);
+
+		/// <summary>
+		/// Tests callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="userId">User ID.</param>
+		/// <returns>List of test data.</returns>
+		static async Task<object> getTestsCallback(
+			int subjectId, int userId) => await AppServices.GetAvailableTests(subjectId, userId);
+
+		/// <summary>
+		/// Test callback.
+		/// </summary>
+		/// <param name="testId">User ID.</param>
+		/// <returns>Test details data.</returns>
+		static async Task<object> getTestCallback(
+			int testId) => await AppServices.GetTest(testId);
+
+		/// <summary>
+		/// Next question callback.
+		/// </summary>
+		/// <param name="testId">User ID.</param>
+		/// <param name="questionNumber">Question number.</param>
+		/// <param name="userId">User ID.</param>
+		/// <returns>Test question data.</returns>
+		static async Task<object> getNextQuestionCallback(
+			int testId, int questionNumber, int userId) =>
+			await AppServices.GetNextQuestion(testId, questionNumber, userId);
+
+		/// <summary>
+		/// Answer question callback.
+		/// </summary>
+		/// <param name="answer">Answer model.</param>
+		/// <returns>String. <c>"Ok"</c>, for example.</returns>
+		static async Task<object> answerQuestionCallback(
+			TestAnswerPostModel answer) =>
+			await AppServices.AnswerQuestionAndGetNext(answer);
+
+		/// <summary>
+		/// Test answers callback.
+		/// </summary>
+		/// <param name="userId">User ID.</param>
+		/// <param name="testId">User ID.</param>
+		/// <returns>List of results data.</returns>
+		static async Task<object> getTestAnswersCallback(
+			int userId, int testId) => await AppServices.GetUserAnswers(userId, testId);
+		static async Task<object> getTestAnswersCallback(
+			int testId) => await AppServices.GetUserAnswers(testId);
+
+		/// <summary>
+		/// Root concepts callback.
+		/// </summary>
+		/// <param name="userId">User ID.</param>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <returns>Root concept data.</returns>
+		static async Task<object> getRootConceptsCallback(
+			string userId, string subjectId) => await AppServices.GetRootConcepts(userId, subjectId);
+
+		static async Task<object> getRootConceptsCallback(
+			string subjectId) => await AppServices.GetRootConcepts(subjectId);
+
+		/// <summary>
+		/// Concept tree callback.
+		/// </summary>
+		/// <param name="elementId">Root element ID.</param>
+		/// <returns>Concept data.</returns>
+		static async Task<object> getConceptTreeCallback(
+			int elementId) => await AppServices.GetConceptTree(elementId);
+
+		/// <summary>
+		/// Concept cascade callback.
+		/// </summary>
+		/// <param name="elementId">Root element ID.</param>
+		/// <returns>Concept data.</returns>
+		static async Task<object> getConceptCascadeCallback(
+			int elementId) => await AppServices.GetConceptCascade(elementId);
+
+		/// <summary>
+		/// Files callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <returns>Files data.</returns>
+		static async Task<object> getFilesCallback(
+			int subjectId) => await AppServices.GetFiles(subjectId);
+
+		/// <summary>
+		/// Recommendations callback.
+		/// </summary>
+		/// <param name="subjectId">Subject ID.</param>
+		/// <param name="userId">User ID.</param>
+		/// <returns>List of recommendations data.</returns>
+		static async Task<object> getRecommendationsCallback(
+			int subjectId, int userId) => await AppServices.GetRecommendations(subjectId, userId);
+
+		/// <summary>
+		/// Files details callback.
+		/// </summary>
+		/// <param name="values">Values list.</param>
+		/// <returns>Files data.</returns>
+		static async Task<object> getFilesDetailsCallback(
+			IEnumerable<string> values) => await AppServices.GetFilesDetails(values);
+
+		/// <summary>
+		/// GroupInfo Callback
+		/// </summary>
+		/// <param name="groupName"></param>
+		/// <returns></returns>
+		static async Task<object> getGroupInfoCallback(
+				string groupName) => await AppServices.GetGroupInfo(groupName);
+
+	}
+}
+

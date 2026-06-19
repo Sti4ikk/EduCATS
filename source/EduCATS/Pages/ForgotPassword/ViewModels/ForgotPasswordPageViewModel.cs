@@ -1,0 +1,335 @@
+using EduCATS.Helpers.Forms;
+using EduCATS.Helpers.Json;
+using EduCATS.Helpers.Logs;
+using EduCATS.Networking;
+using EduCATS.Networking.AppServices;
+using EduCATS.Networking.Models;
+using Newtonsoft.Json;
+using Nyxbull.Plugins.CrossLocalization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+
+namespace EduCATS.Pages.ForgotPassword.ViewModels
+{
+	public class ForgotPasswordPageViewModel : ViewModel
+	{
+		public readonly IPlatformServices _services;
+		public ForgotPasswordPageViewModel(IPlatformServices services)
+		{
+			_services = services;
+			IsConfirmPasswordHidden = IsPasswordHidden = true;
+		}
+
+		Command _hidePasswordCommand;
+		/// <summary>
+		/// Hide password command.
+		/// </summary>
+		public Command HidePasswordCommand
+		{
+			get
+			{
+				return _hidePasswordCommand ?? (_hidePasswordCommand = new Command(hidePassword));
+			}
+		}
+
+		Command _hideConfirmPasswordCommand;
+		/// <summary>
+		/// Hide password command.
+		/// </summary>
+		public Command HideConfirmPasswordCommand
+		{
+			get
+			{
+				return _hideConfirmPasswordCommand ?? (_hideConfirmPasswordCommand = new Command(hideConfirmPassword));
+			}
+		}
+
+		Command _resetPasswordCommand;
+		/// <summary>
+		/// Login command.
+		/// </summary>
+		public Command ResetPasswordCommand
+		{
+			get
+			{
+				return _resetPasswordCommand ??= new Command(async () => await startResetPassword());
+			}
+		}
+
+		public bool checkCredentials()
+		{
+			if (string.IsNullOrEmpty(UserName) ||
+				string.IsNullOrEmpty(NewPassword) ||
+				string.IsNullOrEmpty(ConfirmPassword) ||
+				string.IsNullOrEmpty(AnswerToSecretQuestion) || 
+				string.IsNullOrEmpty(QuestionId))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		public int UpperCaseLettersInPassword()
+		{
+			int uppercase = 0;
+			foreach (char symbol in NewPassword.Where(char.IsUpper))
+			{
+				uppercase++;
+			};
+			return uppercase;
+		}
+
+		public bool LatinPassword()
+		{
+			bool latin_password = true;
+			try
+			{
+				for (int i = 0; i < NewPassword.Length; i++)
+				{
+					if (!(((NewPassword[i] >= 'a') && (NewPassword[i] <= 'z')) || ((NewPassword[i] >= 'A') && (NewPassword[i] <= 'Z')) || (NewPassword[i] == '_') ||
+						((NewPassword[i] >= '0') && NewPassword[i] <= '9')))
+					{
+						latin_password = false;
+						break;
+					}
+				}
+			}
+			catch
+			{
+				latin_password = false;
+			}
+			return latin_password;
+		}
+
+		protected async Task<object> startResetPassword()
+		{ 
+			try
+			{
+				if (checkCredentials())
+				{
+					var uppercase = UpperCaseLettersInPassword();
+					bool latin_password = LatinPassword();
+
+					if (!(NewPassword.Length > 6 && NewPassword.Length < 30))
+					{
+						_services.Dialogs.ShowError(CrossLocalization.Translate("password_length_error"));
+						return Task.FromResult<object>(null);
+					}
+
+					if (!(uppercase != 0 && latin_password == true))
+					{
+						_services.Dialogs.ShowMessage(CrossLocalization.Translate("password_not_correct"),
+									CrossLocalization.Translate("latin_password"));
+						return Task.FromResult<object>(null);
+					}
+
+					if (QuestionId == CrossLocalization.Translate("mother_last_name"))
+					{
+						SelectedQuestionId = 1;
+					}
+
+					else if (QuestionId == CrossLocalization.Translate("pets_name"))
+					{
+						SelectedQuestionId = 2;
+					}
+					else if (QuestionId == CrossLocalization.Translate("hobby"))
+					{
+						SelectedQuestionId = 3;
+					}
+
+					if (!(NewPassword == ConfirmPassword))
+					{
+						_services.Dialogs.ShowError(CrossLocalization.Translate("password_mismatch"));
+						return Task.FromResult<object>(null);
+					}
+
+					var result = await VerifyPostAsync(UserName, SelectedQuestionId, AnswerToSecretQuestion);
+					if (JsonConvert.DeserializeObject<string>(result.Key) == "ѕользователь не найден!")
+					{
+						_services.Dialogs.ShowError(CrossLocalization.Translate("no_user"));
+						return Task.FromResult<object>(null);
+					}
+
+					if (JsonConvert.DeserializeObject<string>(result.Key) == "¬веден неверный секретный ответ")
+					{
+						_services.Dialogs.ShowError(CrossLocalization.Translate("invaild_answer"));
+						return Task.FromResult<object>(null);
+					}
+
+					if (JsonConvert.DeserializeObject<string>(result.Key) == "OK")
+					{
+						setLoading(true, CrossLocalization.Translate("change_password"));
+						await ResetPassword(NewPassword, UserName);
+						setLoading(false);
+						_services.Dialogs.ShowMessage(CrossLocalization.Translate("password_changed"),
+							CrossLocalization.Translate("successful_password_change"));
+						await _services.Navigation.ClosePage(false);
+					}
+					else if (JsonConvert.DeserializeObject<string>(result.Key) == "ѕароль данного пользвател€ не может быть восстановлен!")
+					{
+						_services.Dialogs.ShowMessage(CrossLocalization.Translate("base_error"),
+							CrossLocalization.Translate("not_recovered_password_changed"));
+					}
+				}
+				else
+				{
+					_services.Dialogs.ShowError(CrossLocalization.Translate("empty_fields_forgot_password"));
+					return Task.FromResult<object>(null);
+				}
+			}
+			catch (Exception ex)
+			{
+				AppLogs.Log(ex);
+			}
+			return Task.FromResult<object>(null);
+		}
+
+		public static async Task<KeyValuePair<string, HttpStatusCode>> ResetPassword(string newPassword, string userName)
+		{
+			var newpassword = new ForgotPasswordModel
+			{
+				Password = newPassword,
+				UserName = userName,
+			};
+			var body = JsonController.ConvertObjectToJson(newpassword);
+			return await AppServicesController.Request(Links.ResetPassword, body);
+		}	
+
+		public async Task<KeyValuePair<string, HttpStatusCode>> VerifyPostAsync(string username,
+			int questionId, string answerToSecretQuestion)
+		{
+			object user = default;
+			var body = JsonController.ConvertObjectToJson(user);
+			return await AppServicesController.Request(Links.VerifySecretQuestion + "userName=" +
+				username + "&questionId=" + questionId + "&answer=" + answerToSecretQuestion,body);
+		}
+
+		/// <summary>
+		/// Username property.
+		/// </summary>
+		string _username;
+		public string UserName
+		{
+			get { return _username; }
+			set { SetProperty(ref _username, value); }
+		}
+
+		String _selectedQuestion;
+
+		/// <summary>
+		/// Secret question property.
+		/// </summary>
+		public String QuestionId
+		{
+			get { return _selectedQuestion; }
+			set { SetProperty(ref _selectedQuestion, value); }
+		}
+
+		int _selectedQuestionId;
+
+		/// <summary>
+		/// Secret question property.
+		/// </summary>
+		public int SelectedQuestionId
+		{
+			get { return _selectedQuestionId; }
+			set { SetProperty(ref _selectedQuestionId, value); }
+		}
+
+		string _answerToSecretQuestion;
+
+		/// <summary>
+		/// Secret question property.
+		/// </summary>
+		public string AnswerToSecretQuestion
+		{
+			get { return _answerToSecretQuestion; }
+			set { SetProperty(ref _answerToSecretQuestion, value); }
+		}
+
+		string _newpassword;
+		/// <summary>
+		/// Confirm password property.
+		/// </summary>
+		public string NewPassword
+		{
+			get { return _newpassword; }
+			set { SetProperty(ref _newpassword, value); }
+		}
+
+		string _confirmpassword;
+		/// <summary>
+		/// Password property.
+		/// </summary>
+		public string ConfirmPassword
+		{
+			get { return _confirmpassword; }
+			set { SetProperty(ref _confirmpassword, value); }
+		}
+
+		bool _isPasswordHidden;
+
+		/// <summary>
+		/// Property for checking if password is hidden.
+		/// </summary>
+		public bool IsPasswordHidden
+		{
+			get { return _isPasswordHidden; }
+			set { SetProperty(ref _isPasswordHidden, value); }
+		}
+
+
+		bool _isConfirmPasswordHidden;
+
+		/// <summary>
+		/// Property for checking if confirm password is hidden.
+		/// </summary>
+		public bool IsConfirmPasswordHidden
+		{
+			get { return _isConfirmPasswordHidden; }
+			set { SetProperty(ref _isConfirmPasswordHidden, value); }
+		}
+
+
+		/// <summary>
+		/// Sets loading status.
+		/// </summary>
+		/// <param name="isLoading">Is loading status.</param>
+		/// <param name="message">Message to show.</param>
+		void setLoading(bool isLoading, string message = null)
+		{
+			if (isLoading)
+			{
+				_services.Dialogs.ShowLoading(message);
+			}
+			else
+			{
+				_services.Dialogs.HideLoading();
+			}
+		}
+
+		/// <summary>
+		/// Hides or shows a password.
+		/// </summary>
+		protected void hidePassword()
+		{
+			IsPasswordHidden = !IsPasswordHidden;
+		}
+
+		/// <summary>
+		/// Hides or shows a confirm password.
+		/// </summary>
+		protected void hideConfirmPassword()
+		{
+			IsConfirmPasswordHidden = !IsConfirmPasswordHidden;
+		}
+
+	}
+}
+

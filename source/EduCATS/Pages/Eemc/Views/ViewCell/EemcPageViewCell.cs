@@ -1,0 +1,94 @@
+using EduCATS.Data.Models;
+using EduCATS.Helpers.Forms.Styles;
+using EduCATS.Themes;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui;
+
+namespace EduCATS.Pages.Eemc.Views.ViewCell
+{
+	public class EemcPageViewCell : ContentView
+	{
+		const double _iconHeight = 30;
+		const string _testString = "test";
+		static Thickness _margin = new Thickness(15);
+		readonly Image _icon;
+		bool _isPublished;
+
+		public EemcPageViewCell()
+		{
+			_icon = new Image
+			{
+				HorizontalOptions = LayoutOptions.Center,
+				HeightRequest = _iconHeight
+			};
+
+			var title = new Label
+			{
+				TextColor = Color.FromArgb(Theme.Current.EemcItemTitleColor),
+				HorizontalOptions = LayoutOptions.Center,
+				HorizontalTextAlignment = TextAlignment.Center,
+				Style = AppStyles.GetLabelStyle()
+			};
+
+			title.SetBinding(Label.TextProperty, "Name");
+
+			Content = new StackLayout
+			{
+				Margin = _margin,
+				Children = {
+					_icon,
+					title
+				}
+			};
+		}
+
+		protected override void OnBindingContextChanged()
+		{
+			base.OnBindingContextChanged();
+
+			if (!(BindingContext is ConceptModel))
+			{
+				return;
+			}
+
+			var concept = BindingContext as ConceptModel;
+			_isPublished = concept.Published;
+
+			if (concept.IsGroup)
+			{
+				setIcon(
+					Theme.Current.EemcDirectoryActiveIcon,
+					Theme.Current.EemcDirectoryInactiveIcon);
+				return;
+			}
+
+			if (concept.Container != null && !concept.Container.Equals(_testString))
+			{
+				setIcon(
+					Theme.Current.EemcDocumentActiveIcon,
+					Theme.Current.EemcDocumentInactiveIcon);
+				return;
+			}
+
+			if (concept.Container != null && concept.Container.Equals(_testString))
+			{
+				setIcon(
+					Theme.Current.EemcDocumentTestActiveIcon,
+					Theme.Current.EemcDocumentTestInactiveIcon);
+				return;
+			}
+
+			setIcon(
+				Theme.Current.EemcDocumentActiveIcon,
+				Theme.Current.EemcDocumentInactiveIcon);
+		}
+
+		void setIcon(string publishedIcon, string unpublishedIcon)
+		{
+			_icon.Source = _isPublished ?
+				ImageSource.FromFile(publishedIcon) :
+				ImageSource.FromFile(unpublishedIcon);
+		}
+	}
+}
