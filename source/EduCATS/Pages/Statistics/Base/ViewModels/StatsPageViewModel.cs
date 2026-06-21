@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -302,7 +302,7 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 			{
 				PagesList = new List<StatsPageModel> {
 				getPage("stats_page_lectures_visiting"),
-				getPage("practi�e_visiting"),
+				getPage("practiсe_visiting"),
 				getPage("practice_mark"),
 				getPage("stats_page_labs_visiting"),
 				getPage("stats_page_labs_rating"),
@@ -312,7 +312,7 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 			{
 				PagesList = new List<StatsPageModel> {
 				getPage("stats_page_lectures_visiting"),
-				getPage("practi�e_visiting"),
+				getPage("practiсe_visiting"),
 				getPage("practice_mark"),
 				};
 			}
@@ -341,7 +341,7 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 		{
 			var labsRatingString = CrossLocalization.Translate("stats_page_labs_rating");
 			var labsVisitingString = CrossLocalization.Translate("stats_page_labs_visiting");
-			var practiseVisitingString = CrossLocalization.Translate("practi�e_visiting");
+			var practiseVisitingString = CrossLocalization.Translate("practiсe_visiting");
 			var practiseRatingString = CrossLocalization.Translate("practice_mark");
 
 			if (pageString.Equals(labsRatingString))
@@ -604,11 +604,11 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 		}
 
 		void setChartData(
-			double averageLabs,
-			double averageTests,
-			double averagePract,
-			double averageCourse,
-			bool includeCourseInRating)
+	double averageLabs,
+	double averageTests,
+	double averagePract,
+	double averageCourse,
+	bool includeCourseInRating)
 		{
 			try
 			{
@@ -623,28 +623,26 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 				var chartEntries = new List<StatsChartEntryModel>();
 
 				if (IsPract)
-				{
 					chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Pract, averagePract));
-				}
 
 				if (IsLabs)
-				{
 					chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Labs, averageLabs));
-				}
 
 				if (IsTests)
-				{
 					chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Tests, averageTests));
-				}
 
 				if (IsCourse)
-				{
 					chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Course, averageCourse));
-				}
 
 				chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Rating, rating));
-				ChartEntries = chartEntries;
 
+				// ↓ ДОБАВИТЬ ЭТО — Syncfusion падает если точек меньше 2
+				while (chartEntries.Count < 2)
+				{
+					chartEntries.Add(new StatsChartEntryModel(StatsChartMetricType.Rating, 0));
+				}
+
+				ChartEntries = chartEntries;
 				setNotEnoughDetails(ChartEntries == null || ChartEntries.Count == 0);
 			}
 			catch (Exception ex)

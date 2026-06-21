@@ -12,21 +12,38 @@ namespace EduCATS.Helpers.Forms.Converters
 {
 	public class DoubleListToRadarChartConverter : IValueConverter
 	{
-		// В Syncfusion цвета задаются через Brush
 		static Color _lineColor = Colors.Gray;
 
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value == null) return null;
+			// Syncfusion SfPolarChart требует минимум 2 точки — иначе NullRef в DrawSecondaryAxisGridLine
+			var fallback = new ChartSeriesCollection
+	{
+		new PolarLineSeries
+		{
+			ItemsSource = new List<StatsChartEntryModel>
+			{
+				new StatsChartEntryModel(StatsChartMetricType.Labs, 0),
+				new StatsChartEntryModel(StatsChartMetricType.Tests, 0),
+				new StatsChartEntryModel(StatsChartMetricType.Rating, 0)
+			},
+			XBindingPath = "Label",
+			YBindingPath = "Value",
+			Fill = new SolidColorBrush(Colors.Transparent),
+		}
+	};
 
-			var metrics = value as List<StatsChartEntryModel>;
-			if (metrics == null || metrics.Count == 0) return null;
+			if (value is not List<StatsChartEntryModel> metrics || metrics.Count == 0)
+				return fallback;
 
-			// Создаём серию данных (Radar/Polar Line)
+			// Если пришла всего одна точка — тоже используем fallback
+			if (metrics.Count < 2)
+				return fallback;
+
 			var series = new PolarLineSeries
 			{
 				ItemsSource = metrics,
-				XBindingPath = "Type", // Укажите правильное поле для подписей (например, название предмета)
+				XBindingPath = "Label",
 				YBindingPath = "Value",
 				Fill = new SolidColorBrush(_lineColor),
 				StrokeWidth = 2,
@@ -34,13 +51,10 @@ namespace EduCATS.Helpers.Forms.Converters
 				MarkerSettings = new ChartMarkerSettings { Width = 10, Height = 10 }
 			};
 
-			// SfPolarChart.Series ожидает коллекцию серий, а не сам график
 			return new ChartSeriesCollection { series };
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-		{
-			return null;
-		}
+			=> null;
 	}
 }

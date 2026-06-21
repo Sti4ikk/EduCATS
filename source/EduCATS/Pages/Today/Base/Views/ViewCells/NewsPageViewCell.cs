@@ -3,6 +3,7 @@ using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Today.Base.Views.ViewCells
@@ -12,7 +13,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 		const double _boxViewSize = 10;
 		const double _boxViewLayoutSize = 20;
 		const double _clockIconSize = 20;
-		const float _viewCornerRadius = 10;
+		const double _viewCornerRadius = 10;
 		static Thickness _framePadding = new Thickness(10);
 		static Thickness _frameMargin = new Thickness(10, 0, 10, 10);
 
@@ -89,20 +90,23 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				}
 			};
 
-			View = new Frame
+			View = new Border
 			{
-				HasShadow = false,
-				CornerRadius = _viewCornerRadius,
+				StrokeThickness = 0,
+				StrokeShape = new RoundRectangle
+				{
+					CornerRadius = new CornerRadius(_viewCornerRadius)
+				},
 				Padding = _framePadding,
 				Margin = _frameMargin,
 				BackgroundColor = Color.FromArgb(Theme.Current.TodayNewsItemBackgroundColor),
 				Content = new StackLayout
 				{
 					Children = {
-						title,
-						subjectLayout,
-						dateLayout
-					}
+				title,
+				subjectLayout,
+				dateLayout
+				}
 				}
 			};
 		}
