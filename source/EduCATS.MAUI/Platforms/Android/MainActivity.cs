@@ -4,7 +4,16 @@ using Android.OS;
 
 namespace EduCATS.MAUI
 {
-	[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+	[Activity(
+	Theme = "@style/Maui.SplashTheme",
+	MainLauncher = true,
+	LaunchMode = LaunchMode.SingleTop,
+	ConfigurationChanges = ConfigChanges.ScreenSize
+						   | ConfigChanges.Orientation
+						   | ConfigChanges.UiMode
+						   | ConfigChanges.ScreenLayout
+						   | ConfigChanges.SmallestScreenSize
+						   | ConfigChanges.Density)]
 	public class MainActivity : MauiAppCompatActivity
 	{
 		protected override void OnCreate(Bundle savedInstanceState)
@@ -16,4 +25,5 @@ namespace EduCATS.MAUI
 				(sender, cert, chain, errors) => true;
 		}
 	}
+
 }

@@ -1,8 +1,9 @@
-﻿using EduCATS.Controls.Pickers;
+﻿using EduCATS.Controls.Charts;
+using EduCATS.Controls.Pickers;
 using EduCATS.Controls.RoundedListView;
 using EduCATS.Helpers.Forms;
-using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
+using EduCATS.Pages.Statistics.Base.Models;
 using EduCATS.Pages.Statistics.Base.ViewModels;
 using EduCATS.Pages.Statistics.Base.Views.ViewCells;
 using EduCATS.Themes;
@@ -11,9 +12,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Nyxbull.Plugins.CrossLocalization;
-using Syncfusion.Maui.Charts;
 using System.Collections.Generic;
-
 
 namespace EduCATS.Pages.Statistics.Base.Views
 {
@@ -44,29 +43,28 @@ namespace EduCATS.Pages.Statistics.Base.Views
 
 		protected StatsPageView(bool skipInit)
 		{
-			// пустой — наследник сам настроит всё
 		}
 
 		void createViews()
 		{
 			var headerView = createHeaderView();
-			var roundedListView = createRoundedList(); // ← без header
+			var roundedListView = createRoundedList();
 
 			Content = new ScrollView
 			{
 				Content = new StackLayout
 				{
 					Children = {
-				headerView,      // чарт здесь — вне ListView
-                roundedListView  // только список
-            }
+						headerView,
+						roundedListView
+					}
 				}
 			};
 		}
 
-		RoundedListView createRoundedList() // ← без параметра header
+		RoundedListView createRoundedList()
 		{
-			var roundedListView = new RoundedListView(typeof(StatsPageViewCell)) // ← без header
+			var roundedListView = new RoundedListView(typeof(StatsPageViewCell))
 			{
 				IsPullToRefreshEnabled = true
 			};
@@ -96,7 +94,7 @@ namespace EduCATS.Pages.Statistics.Base.Views
 
 		protected Border createFrameWithChartView()
 		{
-			// var chartView = createChartView();
+			var chartView = createChartView();
 			var hiddenDetailsView = createHiddenDetailsView();
 			var expandableView = createExpandableView(true);
 			expandableView.SetBinding(IsVisibleProperty, "IsCollapsedStatistics");
@@ -111,11 +109,11 @@ namespace EduCATS.Pages.Statistics.Base.Views
 				Content = new StackLayout
 				{
 					Children = {
-                // chartView,  ← убрать
-                hiddenDetailsView,
-				expandableView,
-				collapsibleView
-			}
+						chartView,
+						hiddenDetailsView,
+						expandableView,
+						collapsibleView
+					}
 				}
 			};
 		}
@@ -290,35 +288,31 @@ namespace EduCATS.Pages.Statistics.Base.Views
 			};
 		}
 
-		SfPolarChart createChartView()
+		RadarChartView createChartView()
 		{
-			var polarChart = new SfPolarChart
+			var chartView = new RadarChartView
 			{
 				HeightRequest = _chartHeight,
-				GridLineType = PolarChartGridLineType.Polygon,
-				BackgroundColor = Colors.Transparent,
 				HorizontalOptions = LayoutOptions.Fill,
 				VerticalOptions = LayoutOptions.Fill,
-				IsVisible = false // ← скрыт по умолчанию
+				AutoScale = false,
+				MaxValue = 10,
+				GridStep = 10,
+				LineColor = Color.FromArgb(Theme.Current.StatisticsChartRatingColor),
+				MetricColors = new Dictionary<StatsChartMetricType, Color>
+		{
+			{ StatsChartMetricType.Pract, Color.FromArgb(Theme.Current.StatisticsChartPractColor) },
+			{ StatsChartMetricType.Labs, Color.FromArgb(Theme.Current.StatisticsChartLabsColor) },
+			{ StatsChartMetricType.Tests, Color.FromArgb(Theme.Current.StatisticsChartTestsColor) },
+			{ StatsChartMetricType.Course, Color.FromArgb(Theme.Current.StatisticsChartCourseColor) },
+			{ StatsChartMetricType.Rating, Color.FromArgb(Theme.Current.StatisticsChartRatingColor) }
+		}
 			};
 
-			polarChart.PrimaryAxis = new CategoryAxis { ShowMajorGridLines = true };
-			polarChart.SecondaryAxis = new NumericalAxis
-			{
-				Minimum = 0,
-				Maximum = 100,
-				Interval = 20,
-				ShowMajorGridLines = true
-			};
+			chartView.SetBinding(RadarChartView.EntriesProperty, "ChartEntries");
+			chartView.SetBinding(IsVisibleProperty, "IsEnoughDetails");
 
-			polarChart.SetBinding(SfPolarChart.SeriesProperty,
-								  "ChartEntries",
-								  converter: new DoubleListToRadarChartConverter());
-
-			// показываем только когда данные готовы
-			polarChart.SetBinding(IsVisibleProperty, "IsEnoughDetails");
-
-			return polarChart;
+			return chartView;
 		}
 	}
 }

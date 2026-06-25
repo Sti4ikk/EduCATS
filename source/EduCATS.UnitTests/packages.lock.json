@@ -80,6 +80,11 @@
           "Microsoft.Maui.Controls": "10.0.0"
         }
       },
+      "Microcharts.Maui": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "OlWr45UZs7SPvldOlbaNDKFxcjh00uKyMYVJcFg1D55mAaerm6+VIZymtvLJKG/Jsk1vYy/iIRaYPKB6wZy8lA=="
+      },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",
         "resolved": "2.23.0",
@@ -461,6 +466,7 @@
         "dependencies": {
           "Acr.UserDialogs": "[9.2.2, )",
           "Controls.UserDialogs.Maui": "[1.12.0, )",
+          "Microcharts.Maui": "[1.0.1, )",
           "Microsoft.Maui.Controls": "[10.0.71, )",
           "MonkeyCache.FileStore": "[2.1.1, )",
           "Newtonsoft.Json": "[13.0.4, )",

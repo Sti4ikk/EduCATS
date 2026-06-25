@@ -1,8 +1,8 @@
 ﻿using Controls.UserDialogs.Maui;
+using EduCATS.Helpers.Forms.Effects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Compatibility.Hosting;
 using Syncfusion.Maui.Core.Hosting;
-using EduCATS.Helpers.Forms.Effects;
 
 namespace EduCATS.MAUI
 {

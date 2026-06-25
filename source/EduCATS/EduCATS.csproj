@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+		<TargetFrameworks>net10.0</TargetFrameworks>
         <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 		<UseMaui>true</UseMaui>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -47,7 +47,6 @@
         <Folder Include="Pages\Today\Base\Views\" />
         <Folder Include="Pages\Today\Base\ViewModels\" />
         <Folder Include="Pages\Today\Base\Views\ViewCells\" />
-        <Folder Include="Controls\" />
         <Folder Include="Controls\RoundedListView\" />
         <Folder Include="Controls\RoundedListView\Enums\" />
         <Folder Include="Controls\RoundedListView\Interfaces\" />
