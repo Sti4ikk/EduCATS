@@ -12,7 +12,7 @@ namespace EduCATS.Themes.Templates
 	{
 		const string _greyColor = "#808080";
 		const string _whiteColor = "#FFFFFF";
-		const string _baseBlueColor = "#27AAE1";
+		const string _baseBlueColor = "#3F51B5";
 		const string _lightGreyColor = "#F7F5F3";
 		const string _blackColor = "#000000";
 

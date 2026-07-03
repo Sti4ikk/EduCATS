@@ -42,11 +42,11 @@ namespace EduCATS.Pages.Parental.FindGroup.Views
 			var scrollView = new ScrollView
 			{
 				VerticalOptions = LayoutOptions.Fill,
-				Content = new StackLayout
+				Content = new Grid   // ← было StackLayout
 				{
 					Children = {
-						mainLayout
-					}
+				mainLayout
+			}
 				}
 			};
 
@@ -54,9 +54,9 @@ namespace EduCATS.Pages.Parental.FindGroup.Views
 			{
 				HorizontalOptions = LayoutOptions.Fill,
 				Children = {
-					scrollView,
-					settingsIcon
-				}
+			scrollView,
+			settingsIcon
+		}
 			};
 		}
 

@@ -65,22 +65,19 @@ namespace EduCATS.Pages.Login.Views
 			var scrollView = new ScrollView
 			{
 				VerticalOptions = LayoutOptions.Fill,
-				Content = new StackLayout
+				Content = new Grid
 				{
-					Children = {
-						mainLayout
-					}
+					Children = { mainLayout }
 				}
 			};
 
 			Content = new Grid
 			{
-				HorizontalOptions = LayoutOptions.End,
 				Children = {
-					backgroundImage,
-					scrollView,
-					settingsIcon
-				}
+			backgroundImage,
+			scrollView,
+			settingsIcon
+		}
 			};
 		}
 
@@ -124,15 +121,13 @@ namespace EduCATS.Pages.Login.Views
 			var chekInLabel = createCheckInLabel();
 			var gridPanel = new Grid
 			{
-				RowDefinitions =
-				{
-					new RowDefinition { Height = new GridLength(1, GridUnitType.Star) },
-				},
-				ColumnDefinitions =
-				{
-					new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto)},
-				},
+				RowDefinitions = { new RowDefinition { Height = new GridLength(1, GridUnitType.Star) } },
+				ColumnDefinitions = {
+			new ColumnDefinition { Width = GridLength.Auto },
+			new ColumnDefinition { Width = GridLength.Auto } // ← добавили вторую колонку
+		},
 				ColumnSpacing = 5,
+				HorizontalOptions = LayoutOptions.Center // по эталону надпись с ссылкой стоят по центру внизу
 			};
 
 			Grid.SetColumn(chekInLabel, 0);

@@ -48,20 +48,20 @@ namespace EduCATS.Pages.ForgotPassword.Views
 			var scrollView = new ScrollView
 			{
 				VerticalOptions = LayoutOptions.Fill,
-				Content = new StackLayout
+				Content = new Grid   // ← было StackLayout
 				{
 					Children = {
-						forgotPasswordForm,
-					}
+				forgotPasswordForm,
+			}
 				}
 			};
 			Content = new Grid
 			{
 				HorizontalOptions = LayoutOptions.Fill,
 				Children = {
-					backgroundImage,
-					scrollView,
-				}
+			backgroundImage,
+			scrollView,
+		}
 			};
 		}
 
