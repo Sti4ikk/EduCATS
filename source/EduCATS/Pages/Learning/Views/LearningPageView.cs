@@ -13,18 +13,21 @@ namespace EduCATS.Pages.Learning.Views
 	{
 		const int _columns = 2;
 		static Thickness _collectionMargin = new Thickness(0, 20, 0, 0);
+		static Thickness _pagePadding = new Thickness(0, 40, 0, 0);
 
 		public LearningPageView()
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
+			Padding = _pagePadding;
 			BindingContext = new LearningPageViewModel(new PlatformServices());
 			createViews();
 		}
 
 		void createViews()
 		{
-			var collectionView = new CollectionView {
+			var collectionView = new CollectionView
+			{
 				Margin = _collectionMargin,
 				ItemTemplate = new DataTemplate(typeof(LearningPageViewCell)),
 				ItemsLayout = new GridItemsLayout(_columns, ItemsLayoutOrientation.Vertical),
@@ -38,4 +41,3 @@ namespace EduCATS.Pages.Learning.Views
 		}
 	}
 }
-

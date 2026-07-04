@@ -3,6 +3,7 @@ using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;   // ← добавить
 using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Today.Base.Views.ViewCells
@@ -52,16 +53,15 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				}
 			};
 
-			var subjectBoxView = new BoxView
+			var subjectIndicator = new Ellipse   // ← было BoxView subjectBoxView
 			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxViewSize,
-				WidthRequest = _boxViewSize,
-				CornerRadius = _boxViewSize / 2
+				WidthRequest = _boxViewSize
 			};
-			subjectBoxView.SetBinding(
-				BoxView.ColorProperty, "Color", converter: new StringToColorConverter());
+			subjectIndicator.SetBinding(
+				Ellipse.FillProperty, "Color", converter: new StringToColorConverter());
 
 			var boxViewLayout = new StackLayout
 			{
@@ -70,7 +70,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				HeightRequest = _boxViewLayoutSize,
 				WidthRequest = _boxViewLayoutSize,
 				Children = {
-					subjectBoxView
+					subjectIndicator
 				}
 			};
 

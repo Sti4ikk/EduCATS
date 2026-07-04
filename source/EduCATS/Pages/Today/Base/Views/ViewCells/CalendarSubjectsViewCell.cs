@@ -2,6 +2,7 @@ using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;   // ← добавить
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -17,17 +18,18 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 		public CalendarSubjectsViewCell()
 		{
-			var subjectColorView = new BoxView {
+			var subjectColorView = new Ellipse
+			{   // ← было BoxView
 				Margin = _boxViewMargin,
 				HeightRequest = _boxViewSize,
 				WidthRequest = _boxViewSize,
-				CornerRadius = _boxViewSize / 2,
 				VerticalOptions = LayoutOptions.Center
 			};
 
-			subjectColorView.SetBinding(BoxView.ColorProperty, "Color", converter: new StringToColorConverter());
+			subjectColorView.SetBinding(Ellipse.FillProperty, "Color", converter: new StringToColorConverter());
 
-			var subject = new Label {
+			var subject = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.TodayCalendarSubjectTextColor),
 				VerticalOptions = LayoutOptions.Center,
 				Style = AppStyles.GetLabelStyle()
@@ -35,7 +37,8 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			subject.SetBinding(Label.TextProperty, "Subject");
 
-			View = new StackLayout {
+			View = new StackLayout
+			{
 				BackgroundColor = Color.FromArgb(Theme.Current.TodaySubjectBackgroundColor),
 				Padding = _padding,
 				Orientation = StackOrientation.Horizontal,
@@ -47,4 +50,3 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 		}
 	}
 }
-

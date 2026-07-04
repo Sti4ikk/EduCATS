@@ -2,60 +2,25 @@ using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;   // ← добавить
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui;
 
 
 namespace EduCATS.Controls.Pickers
 {
-	/// <summary>
-	/// Subjects picker view.
-	/// </summary>
 	public class SubjectsPickerView : Frame
 	{
-		/// <summary>
-		/// Rounded <see cref="BoxView"/> indicator size.
-		/// </summary>
 		public double IndicatorSize { get; set; }
-
-		/// <summary>
-		/// Chosen subject property.
-		/// </summary>
 		public string ChosenSubjectProperty { get; set; }
-
-		/// <summary>
-		/// Chosen subject <see cref="Color"/>.
-		/// </summary>
 		public string ChosenSubjectColorProperty { get; set; }
-
-		/// <summary>
-		/// Chosen subject command property.
-		/// </summary>
 		public string ChooseSubjectCommandProperty { get; set; }
 
-		/// <summary>
-		/// Default <see cref="BoxView"/> indicator size. 
-		/// </summary>
 		const double _indicatorSizeDefault = 10;
-
-		/// <summary>
-		/// Default chosen subject property.
-		/// </summary>
 		const string _chosenSubjectPropertyDefault = "ChosenSubject";
-
-		/// <summary>
-		/// Default subject <see cref="Color"/> property.
-		/// </summary>
 		const string _chosenSubjectColorPropertyDefault = "ChosenSubjectColor";
-
-		/// <summary>
-		/// Default subject command property.
-		/// </summary>
 		const string _chooseSubjectCommandPropertyDefault = "ChooseSubjectCommand";
 
-		/// <summary>
-		/// Constructor.
-		/// </summary>
 		public SubjectsPickerView()
 		{
 			HasShadow = false;
@@ -69,12 +34,10 @@ namespace EduCATS.Controls.Pickers
 			setGestureRecognizer();
 		}
 
-		/// <summary>
-		/// Create views.
-		/// </summary>
 		void createViews()
 		{
-			Content = new StackLayout {
+			Content = new StackLayout
+			{
 				Orientation = StackOrientation.Horizontal,
 				HorizontalOptions = LayoutOptions.Center,
 				Children = {
@@ -84,35 +47,28 @@ namespace EduCATS.Controls.Pickers
 			};
 		}
 
-		/// <summary>
-		/// Create subject <see cref="BoxView"/> indicator view.
-		/// </summary>
-		/// <returns>Indicator view.</returns>
-		BoxView createSubjectIndicatorView()
+		Ellipse createSubjectIndicatorView()   // ← было BoxView
 		{
-			var indicator = new BoxView {
+			var indicator = new Ellipse
+			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = IndicatorSize,
-				WidthRequest = IndicatorSize,
-				CornerRadius = IndicatorSize / 2
+				WidthRequest = IndicatorSize
 			};
 
 			indicator.SetBinding(
-				BoxView.ColorProperty,
+				Ellipse.FillProperty,
 				ChosenSubjectColorProperty,
 				converter: new StringToColorConverter());
 
 			return indicator;
 		}
 
-		/// <summary>
-		/// Create subject label.
-		/// </summary>
-		/// <returns>Subject label.</returns>
 		Label createSubjectLabel()
 		{
-			var subject = new Label {
+			var subject = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.BasePickerTextColor),
 				HorizontalTextAlignment = TextAlignment.Center,
 				VerticalOptions = LayoutOptions.Center,
@@ -123,9 +79,6 @@ namespace EduCATS.Controls.Pickers
 			return subject;
 		}
 
-		/// <summary>
-		/// Set tap gesture recognizer.
-		/// </summary>
 		void setGestureRecognizer()
 		{
 			var tapGesture = new TapGestureRecognizer();
@@ -134,4 +87,3 @@ namespace EduCATS.Controls.Pickers
 		}
 	}
 }
-

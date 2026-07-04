@@ -26,16 +26,15 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			};
 			title.SetBinding(Label.TextProperty, "Title");
 
-			var subjectBoxView = new BoxView
+			var subjectIndicator = new Ellipse   // ← было BoxView subjectBoxView
 			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxViewSize,
-				WidthRequest = _boxViewSize,
-				CornerRadius = _boxViewSize / 2
+				WidthRequest = _boxViewSize
 			};
-			subjectBoxView.SetBinding(
-				BoxView.ColorProperty, "SubjectColor", converter: new StringToColorConverter());
+			subjectIndicator.SetBinding(
+				Ellipse.FillProperty, "SubjectColor", converter: new StringToColorConverter());
 
 			var boxViewLayout = new StackLayout
 			{
@@ -44,7 +43,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				HeightRequest = _boxViewLayoutSize,
 				WidthRequest = _boxViewLayoutSize,
 				Children = {
-					subjectBoxView
+					subjectIndicator
 				}
 			};
 
@@ -103,10 +102,10 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				Content = new StackLayout
 				{
 					Children = {
-				title,
-				subjectLayout,
-				dateLayout
-				}
+						title,
+						subjectLayout,
+						dateLayout
+					}
 				}
 			};
 		}
