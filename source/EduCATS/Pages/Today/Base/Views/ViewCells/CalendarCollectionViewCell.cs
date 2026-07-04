@@ -2,6 +2,7 @@
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;   // ← добавить
 using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Today.Base.Views.ViewCells
@@ -23,7 +24,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				TextColor = Color.FromArgb(Theme.Current.TodayCalendarBaseTextColor),
-				Style = AppStyles.GetLabelStyle(NamedSize.Small) // NamedSize.Small → 12
+				Style = AppStyles.GetLabelStyle(NamedSize.Small)
 			};
 
 			if (selectionEnabled)
@@ -35,20 +36,19 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			if (selectionEnabled)
 			{
-				var selectedBoxView = new BoxView
+				var selectedEllipse = new Ellipse   // ← было BoxView
 				{
 					VerticalOptions = LayoutOptions.Center,
 					HorizontalOptions = LayoutOptions.Center,
 					HeightRequest = _baseRowHeight,
-					WidthRequest = _baseRowHeight,
-					CornerRadius = _baseRowHeight / 2
+					WidthRequest = _baseRowHeight
 				};
-				selectedBoxView.SetBinding(BoxView.ColorProperty, "SelectionColor", converter: colorConverter);
-				grid.Children.Add(selectedBoxView);
+				selectedEllipse.SetBinding(Ellipse.FillProperty, "SelectionColor", converter: colorConverter);
+				grid.Children.Add(selectedEllipse);
 			}
 			else
 			{
-				contentLabel.FontSize = 10; // NamedSize.Micro → 10
+				contentLabel.FontSize = 10;
 			}
 
 			grid.Children.Add(contentLabel);

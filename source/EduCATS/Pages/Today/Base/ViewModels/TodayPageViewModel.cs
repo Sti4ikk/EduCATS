@@ -382,6 +382,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 				.Select(d => new CalendarViewDayModel
 				{
 					TextColor = Theme.Current.TodayCalendarBaseTextColor,
+					SelectionColor = Theme.Current.TodayNotSelectedDateColor,
 					Day = d.Day,
 					Month = d.Month,
 					Year = d.Year

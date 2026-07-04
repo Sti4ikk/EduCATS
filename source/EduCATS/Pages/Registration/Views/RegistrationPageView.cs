@@ -61,20 +61,20 @@ namespace EduCATS.Pages.Registration.Views
 			var scrollView = new ScrollView
 			{
 				VerticalOptions = LayoutOptions.Fill,
-				Content = new StackLayout
+				Content = new Grid   // ← было StackLayout
 				{
 					Children = {
-						chekInForm,
-					}
+				chekInForm,
+			}
 				}
 			};
 			Content = new Grid
 			{
 				HorizontalOptions = LayoutOptions.Fill,
 				Children = {
-					backgroundImage,
-					scrollView,
-				}
+			backgroundImage,
+			scrollView,
+		}
 			};
 		}
 		StackLayout createChekInForm()
@@ -103,7 +103,6 @@ namespace EduCATS.Pages.Registration.Views
 					confirmPasswordEntry,
 					nameEntry,
 					surnameEntry,
-					passwordEntry,
 					patronymicEntry,
 					groupPicker,
 					questionPicker,
