@@ -37,7 +37,7 @@ namespace EduCATS.Pages.Login.Views
 		static Thickness _loginFormPadding = new(20, 0);
 		static Thickness _baseSpacing = new(0, 10, 0, 0);
 		static Thickness _iosSettingsMargin = new(20, 60);
-		static Thickness _androidSettingsMargin = new(30);
+		static Thickness _androidSettingsMargin = new(30, 40, 30, 30);
 		static Thickness _showPasswordIconMargin = new(0, 10, 5, 0);
 
 		Image _mascotTailImage;
@@ -124,10 +124,10 @@ namespace EduCATS.Pages.Login.Views
 				RowDefinitions = { new RowDefinition { Height = new GridLength(1, GridUnitType.Star) } },
 				ColumnDefinitions = {
 			new ColumnDefinition { Width = GridLength.Auto },
-			new ColumnDefinition { Width = GridLength.Auto } // ← добавили вторую колонку
+			new ColumnDefinition { Width = GridLength.Auto }
 		},
 				ColumnSpacing = 5,
-				HorizontalOptions = LayoutOptions.Center // по эталону надпись с ссылкой стоят по центру внизу
+				HorizontalOptions = LayoutOptions.Start
 			};
 
 			Grid.SetColumn(chekInLabel, 0);

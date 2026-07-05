@@ -28,6 +28,19 @@ namespace EduCATS.MAUI
 					fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 				});
 
+#if ANDROID
+			Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping(nameof(IEntry.Background), (handler, view) =>
+			{
+				var color = handler.PlatformView.CurrentTextColor; // не используем, просто для примера
+				var drawable = new Android.Graphics.Drawables.GradientDrawable();
+				drawable.SetShape(Android.Graphics.Drawables.ShapeType.Rectangle);
+				drawable.SetCornerRadius(20); // радиус скругления углов, поставьте 0 для прямых углов
+				drawable.SetColor(Android.Graphics.Color.ParseColor(EduCATS.Themes.Theme.Current.LoginEntryBackgroundColor));
+
+				handler.PlatformView.Background = drawable;
+				handler.PlatformView.BackgroundTintList = null;
+			});
+#endif
 #if DEBUG
 			builder.Logging.AddDebug();
 #endif
