@@ -22,7 +22,7 @@ namespace EduCATS.Pages.Login.Views
 		readonly string[] _backgrounds = {
 			Theme.Current.LoginBackground1Image,
 			Theme.Current.LoginBackground2Image,
-			Theme.Current.LoginBackground3Image,
+			Theme.Current.LoginBackground3Image
 		};
 
 		const double _controlHeight = 50;
@@ -396,7 +396,7 @@ namespace EduCATS.Pages.Login.Views
 		string getRandomBackgroundImage()
 		{
 			var random = new Random();
-			var randomBackgroundIndex = random.Next(0, _backgrounds.Length - 1);
+			var randomBackgroundIndex = random.Next(0, _backgrounds.Length);
 			return _backgrounds[randomBackgroundIndex];
 		}
 
