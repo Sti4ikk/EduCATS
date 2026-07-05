@@ -151,9 +151,10 @@ namespace EduCATS.Pages.Statistics.Base.Views
 
 			var avgStatsLayout = new StackLayout
 			{
+				Spacing = 6,   // вертикальный отступ между строками
 				Children = {
-					avgPractView, avgLabsView, avgTestsView, avgCourseView, avgRatingView
-				}
+			avgPractView, avgLabsView, avgTestsView, avgCourseView, avgRatingView
+		}
 			};
 
 			avgStatsLayout.SetBinding(IsVisibleProperty, "IsEnoughDetails");
@@ -165,11 +166,11 @@ namespace EduCATS.Pages.Statistics.Base.Views
 
 			var hiddenDetailsView = new StackLayout
 			{
-				Padding = _hiddenDetailsPadding,
+				Padding = new Thickness(20, 10, 0, 0),
 				Children = {
-					avgStatsLayout,
-					notEnoughDataLabel
-				}
+			avgStatsLayout,
+			notEnoughDataLabel
+		}
 			};
 
 			hiddenDetailsView.SetBinding(IsVisibleProperty, "IsExpandedStatistics");
@@ -204,7 +205,8 @@ namespace EduCATS.Pages.Statistics.Base.Views
 				TextColor = Color.FromArgb(Theme.Current.StatisticsBoxTextColor),
 				FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)),
 				VerticalOptions = LayoutOptions.Center,
-				HorizontalOptions = LayoutOptions.Center
+				HorizontalOptions = LayoutOptions.Center,
+				Margin = new Thickness(0, 4, 0, 0)
 			};
 
 			ratingLabel.SetBinding(Label.TextProperty, property);

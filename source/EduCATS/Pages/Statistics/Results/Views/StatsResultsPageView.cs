@@ -85,6 +85,7 @@ namespace EduCATS.Pages.Statistics.Results.Views
 				Content = new StackLayout
 				{
 					Orientation = StackOrientation.Horizontal,
+					Spacing = 10,
 					Children = { summaryLabel, summaryDetailsLabel }
 				}
 			};

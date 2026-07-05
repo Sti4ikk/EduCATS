@@ -1,6 +1,7 @@
 ﻿using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
+using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;   // ← добавить
 using Microsoft.Maui.Graphics;
@@ -23,8 +24,10 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
+				HorizontalTextAlignment = TextAlignment.Center,
+				VerticalTextAlignment = TextAlignment.Center,
 				TextColor = Color.FromArgb(Theme.Current.TodayCalendarBaseTextColor),
-				Style = AppStyles.GetLabelStyle(NamedSize.Small)
+				Style = AppStyles.GetLabelStyle(NamedSize.Small),
 			};
 
 			if (selectionEnabled)
@@ -36,7 +39,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			if (selectionEnabled)
 			{
-				var selectedEllipse = new Ellipse   // ← было BoxView
+				var selectedEllipse = new Ellipse
 				{
 					VerticalOptions = LayoutOptions.Center,
 					HorizontalOptions = LayoutOptions.Center,
@@ -53,6 +56,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			grid.Children.Add(contentLabel);
 			Content = grid;
+			
 		}
 	}
 }

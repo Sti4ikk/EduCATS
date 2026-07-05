@@ -42,9 +42,10 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxViewLayoutSize,
 				WidthRequest = _boxViewLayoutSize,
+				Padding = new Thickness(0, 5, 0, 0),
 				Children = {
 					subjectIndicator
-				}
+					}
 			};
 
 			var subject = new Label
@@ -58,6 +59,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			var subjectLayout = new StackLayout
 			{
 				Orientation = StackOrientation.Horizontal,
+				Spacing = 6,
 				Children = {
 					boxViewLayout,
 					subject
@@ -83,6 +85,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			var dateLayout = new StackLayout
 			{
 				Orientation = StackOrientation.Horizontal,
+				Spacing = 6,
 				Children = {
 					clockIcon,
 					date

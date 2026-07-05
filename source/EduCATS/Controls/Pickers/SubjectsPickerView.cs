@@ -40,6 +40,7 @@ namespace EduCATS.Controls.Pickers
 			{
 				Orientation = StackOrientation.Horizontal,
 				HorizontalOptions = LayoutOptions.Center,
+				Spacing = 8,
 				Children = {
 					createSubjectIndicatorView(),
 					createSubjectLabel()
@@ -47,7 +48,7 @@ namespace EduCATS.Controls.Pickers
 			};
 		}
 
-		Ellipse createSubjectIndicatorView()   // ← было BoxView
+		Ellipse createSubjectIndicatorView()
 		{
 			var indicator = new Ellipse
 			{
