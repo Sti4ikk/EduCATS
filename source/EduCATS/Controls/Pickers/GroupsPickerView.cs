@@ -8,49 +8,23 @@ using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Controls.Pickers
 {
-	/// <summary>
-	/// Groups picker view.
-	/// </summary>
-
 	public class GroupsPickerView : Border
 	{
-		/// <summary>
-		/// Chosen group property.
-		/// </summary>
-		/// <remarks>
-		/// <c>"ChosenGroup"</c> by default.
-		/// </remarks>
 		public string ChosenGroupProperty { get; set; }
-
-		/// <summary>
-		/// Chosen group command property.
-		/// </summary>
-		/// <remarks>
-		/// <c>"ChooseGroupCommand"</c> by default.
-		/// </remarks>
 		public string ChooseGroupCommandProperty { get; set; }
 
-		/// <summary>
-		/// Default chosen group property.
-		/// </summary>
 		const string _chosenGroupPropertyDefault = "ChosenGroup";
-
-		/// <summary>
-		/// Default choose group command property.
-		/// </summary>
 		const string _chooseGroupCommandPropertyDefault = "ChooseGroupCommand";
 
-		/// <summary>
-		/// Constructor.
-		/// </summary>
 		public GroupsPickerView()
 		{
 			ChosenGroupProperty = _chosenGroupPropertyDefault;
 			ChooseGroupCommandProperty = _chooseGroupCommandPropertyDefault;
 
 			BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor);
-
 			StrokeThickness = 0;
+			Padding = new Thickness(20, 10);
+			HorizontalOptions = LayoutOptions.Fill;
 
 			StrokeShape = new RoundRectangle
 			{
@@ -61,28 +35,18 @@ namespace EduCATS.Controls.Pickers
 			setGestureRecognizer();
 		}
 
-		/// <summary>
-		/// Create views.
-		/// </summary>
 		void createViews()
 		{
-			Content = new StackLayout {
-				HorizontalOptions = LayoutOptions.Center,
-				Children = {
-					createGroupLabel()
-				}
-			};
+			Content = createGroupLabel();
 		}
 
-		/// <summary>
-		/// Create group label.
-		/// </summary>
-		/// <returns>Group label.</returns>
 		Label createGroupLabel()
 		{
-			var group = new Label {
+			var group = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.BasePickerTextColor),
 				HorizontalTextAlignment = TextAlignment.Center,
+				HorizontalOptions = LayoutOptions.Fill,
 				VerticalOptions = LayoutOptions.Center,
 				Style = AppStyles.GetLabelStyle()
 			};
@@ -91,9 +55,6 @@ namespace EduCATS.Controls.Pickers
 			return group;
 		}
 
-		/// <summary>
-		/// Set tap gesture recognizer.
-		/// </summary>
 		void setGestureRecognizer()
 		{
 			var tapGesture = new TapGestureRecognizer();
@@ -102,4 +63,3 @@ namespace EduCATS.Controls.Pickers
 		}
 	}
 }
-

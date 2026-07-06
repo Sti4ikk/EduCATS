@@ -19,9 +19,9 @@ namespace EduCATS.Pages.Statistics.Students.Views
 {
 	public class StudentsPageView : ContentPage
 	{
-		static Thickness _padding = new Thickness(10, 1);
+		static Thickness _padding = new Thickness(20, 10);
 		static Thickness _headerPadding = new Thickness(0, 10, 0, 10);
-		static Thickness _searchBarMargin = new Thickness(0, 5, 0, 0);
+		static Thickness _searchBarMargin = new Thickness(0, 10, 0, 0);
 
 		public string TitleOfButton { get; set; }
 		public int pageInd { get; set; }
@@ -47,7 +47,11 @@ namespace EduCATS.Pages.Statistics.Students.Views
 
 		StackLayout createHeaderView()
 		{
-			var groupsPicker = new GroupsPickerView();
+			var groupsPicker = new GroupsPickerView
+			{
+				Margin = new Thickness(0, 10, 0, 10),
+				HeightRequest = 45,
+			};
 			var searchBar = createSearchBar();
 			var addMarks = createAddMarksButton();
 			return new StackLayout

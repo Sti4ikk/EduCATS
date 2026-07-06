@@ -32,15 +32,31 @@ namespace EduCATS.Pages.Settings.About.Views
 
 		void createViews()
 		{
-			Content = new StackLayout
+			var mainContent = new StackLayout
 			{
 				Spacing = _spacing,
-				Padding = _buttonsPadding,
 				Children = {
-					createHeader(),
-					createBodyLayout()
-				}
+			createHeader(),
+			createBodyLayout()
+		}
 			};
+
+			var contributors = createContributorsBlock();
+
+			Content = new Grid
+			{
+				RowDefinitions = {
+			new RowDefinition { Height = GridLength.Star },
+			new RowDefinition { Height = GridLength.Auto }
+		},
+				Children = {
+			mainContent,
+			contributors
+		}
+			};
+
+			Grid.SetRow(mainContent, 0);
+			Grid.SetRow(contributors, 1);
 		}
 
 		StackLayout createBodyLayout()
@@ -64,13 +80,13 @@ namespace EduCATS.Pages.Settings.About.Views
 			return new StackLayout
 			{
 				VerticalOptions = LayoutOptions.Fill,
+				Spacing = 8,
 				Children = {
-					releaseNotesButton,
-					sendLogsButton,
-					openGithubButton,
-					openWebPageButton,
-					createContributorsBlock()
-				}
+			releaseNotesButton,
+			sendLogsButton,
+			openGithubButton,
+			openWebPageButton
+		}
 			};
 		}
 
@@ -163,16 +179,18 @@ namespace EduCATS.Pages.Settings.About.Views
 			var contributors = createContributorLabel("settings_about_contributors", true);
 			var ilContributor = createContributorLabel("contributor_ilya_lehchylin");
 			var jpContributor = createContributorLabel("contributor_julia_popova");
+			var newContributor = createContributorLabel("contributor_matvei_korneichik");
 
 			return new StackLayout
 			{
-				VerticalOptions = LayoutOptions.End,
+				Margin = new Thickness(0, 0, 0, 20),
 				HorizontalOptions = LayoutOptions.Center,
 				Children = {
-					contributors,
-					ilContributor,
-					jpContributor
-				}
+			contributors,
+			ilContributor,
+			jpContributor,
+			newContributor
+		}
 			};
 		}
 

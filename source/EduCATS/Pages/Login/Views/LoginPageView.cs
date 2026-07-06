@@ -20,9 +20,7 @@ namespace EduCATS.Pages.Login.Views
 	public class LoginPageView : ContentPage
 	{
 		readonly string[] _backgrounds = {
-			Theme.Current.LoginBackground1Image,
 			Theme.Current.LoginBackground2Image,
-			Theme.Current.LoginBackground3Image
 		};
 
 		const double _controlHeight = 50;
@@ -37,7 +35,7 @@ namespace EduCATS.Pages.Login.Views
 		static Thickness _loginFormPadding = new(20, 0);
 		static Thickness _baseSpacing = new(0, 10, 0, 0);
 		static Thickness _iosSettingsMargin = new(20, 60);
-		static Thickness _androidSettingsMargin = new(30, 40, 30, 30);
+		static Thickness _androidSettingsMargin = new(30, 40, 14, 30);
 		static Thickness _showPasswordIconMargin = new(0, 10, 5, 0);
 
 		Image _mascotTailImage;

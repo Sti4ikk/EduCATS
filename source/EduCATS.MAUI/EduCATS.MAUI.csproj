@@ -8,7 +8,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<ApplicationTitle>EduCATS.MAUI</ApplicationTitle>
+		<ApplicationTitle>EduCATS</ApplicationTitle>
 		<ApplicationId>com.companyname.educats.maui</ApplicationId>
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
@@ -21,7 +21,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
-		<MauiSplashScreen Include="Resources\Splash\image_splash_logo.png" Color="#3F51B5" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\image_splash_logo.png" Color="#FFFFFF" BaseSize="256,256" />
 		<MauiImage Include="Resources\Images\*" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 		<MauiFont Include="Resources\Fonts\*" />

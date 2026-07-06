@@ -9,7 +9,7 @@ namespace EduCATS.Pages.Statistics.Students.Views.ViewCells
 {
 	public class StudentsPageViewCell : ViewCell
 	{
-		static Thickness _padding = new Thickness(20);
+		static Thickness _padding = new Thickness(20, 15, 20, 15);
 
 		public StudentsPageViewCell()
 		{
@@ -32,4 +32,3 @@ namespace EduCATS.Pages.Statistics.Students.Views.ViewCells
 		}
 	}
 }
-
