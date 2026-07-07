@@ -230,6 +230,11 @@ namespace EduCATS.Pages.Login.ViewModels
 			{
 				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
 			}
+			else if (user != null && string.IsNullOrWhiteSpace(user.Username))
+			{
+				// Ошибка уже показана внутри loginRequest()
+				// поэтому здесь просто ничего не делаем, чтобы не дублировать диалоги
+			}
 			else
 			{
 				_services.Dialogs.ShowError(CrossLocalization.Translate("base_something_went_wrong"));

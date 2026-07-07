@@ -1,7 +1,5 @@
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace EduCATS.Data.Models.User
 {
@@ -17,4 +15,3 @@ namespace EduCATS.Data.Models.User
 		public string role { get; set; }
 	}
 }
-
