@@ -22,6 +22,19 @@ namespace EduCATS.Data
 		const string _nonJsonSuccessResponse = "\"Ok\"";
 
 		/// <summary>
+		/// Known server error codes mapped to localization keys.
+		/// </summary>
+		/// <remarks>
+		/// <c>1</c> = account not confirmed by teacher yet.
+		/// Add new codes here as the server introduces them.
+		/// </remarks>
+		static readonly Dictionary<int, string> _serverErrorCodeKeys = new Dictionary<int, string>
+		{
+			{ 1, "login_user_profile_not_verify" },
+			{ 3, "login_invalid_credentials" },
+		};
+
+		/// <summary>
 		/// Caching key.
 		/// </summary>
 		readonly string _key;
@@ -62,6 +75,13 @@ namespace EduCATS.Data
 		public string ErrorMessageKey { get; set; }
 
 		/// <summary>
+		/// Is <see cref="ErrorMessageKey"/> a ready-to-display message
+		/// (e.g. taken directly from server response) rather than
+		/// a localization key that needs translating.
+		/// </summary>
+		public bool IsRawErrorMessage { get; set; }
+
+		/// <summary>
 		/// Platform services.
 		/// </summary>
 		readonly IPlatformServices _services;
@@ -99,10 +119,11 @@ namespace EduCATS.Data
 			}
 
 			var response = await _callback();
+			System.Diagnostics.Debug.WriteLine($"=== GetSingle: StatusCode={response.Value}, Body={response.Key}");
 
-			if (response.Value == HttpStatusCode.Unauthorized)
+			if (response.Value != HttpStatusCode.OK)
 			{
-				setError("base_session_expired", sessionExpired: true);
+				handleErrorResponse(response);
 				return new T();
 			}
 
@@ -132,9 +153,9 @@ namespace EduCATS.Data
 
 			var response = await _callback();
 
-			if (response.Value == HttpStatusCode.Unauthorized)
+			if (response.Value != HttpStatusCode.OK)
 			{
-				setError("base_session_expired", sessionExpired: true);
+				handleErrorResponse(response);
 				return new List<T>();
 			}
 
@@ -249,17 +270,86 @@ namespace EduCATS.Data
 		}
 
 		/// <summary>
+		/// Determine and set the correct error for a non-<c>200</c> response.
+		/// </summary>
+		/// <param name="response">Response.</param>
+		/// <remarks>
+		/// Priority: known server error code (localized) &gt;
+		/// raw server description (fallback) &gt; HTTP-status-based default.
+		/// </remarks>
+		void handleErrorResponse(KeyValuePair<string, HttpStatusCode> response)
+		{
+			var serverError = tryParseServerError(response.Key);
+
+			if (serverError != null &&
+				_serverErrorCodeKeys.TryGetValue(serverError.Error, out var localizationKey))
+			{
+				setError(localizationKey, sessionExpired: false);
+				return;
+			}
+
+			if (!string.IsNullOrWhiteSpace(serverError?.Description))
+			{
+				setError(serverError.Description, sessionExpired: false, isRawMessage: true);
+				return;
+			}
+
+			if (response.Value == HttpStatusCode.Unauthorized)
+			{
+				setError("base_session_expired", sessionExpired: true);
+				return;
+			}
+
+			setError(_messageForError);
+		}
+
+		/// <summary>
+		/// Try to parse the server error payload from the response body.
+		/// </summary>
+		/// <param name="rawBody">Raw response body.</param>
+		/// <returns>Parsed model, or <c>null</c> if body is not valid JSON.</returns>
+		static ServerErrorModel tryParseServerError(string rawBody)
+		{
+			if (!JsonController.IsJsonValid(rawBody))
+			{
+				return null;
+			}
+
+			return JsonController<ServerErrorModel>.ConvertJsonToObject(rawBody);
+		}
+
+		/// <summary>
+		/// Server error payload. Can be returned by the server
+		/// alongside non-200 status codes (e.g. 400, 401).
+		/// </summary>
+		class ServerErrorModel
+		{
+			public int Error { get; set; }
+
+			public string Description { get; set; }
+		}
+
+		/// <summary>
 		/// Set error details.
 		/// </summary>
 		/// <param name="message">Error message.</param>
 		/// <param name="sessionExpired">Session expired error.</param>
 		/// <param name="isConnectionError">Is connection error.</param>
-		void setError(string message, bool sessionExpired = true, bool isConnectionError = false)
+		/// <param name="isRawMessage">
+		/// Is <paramref name="message"/> a ready-to-display message
+		/// (e.g. from server response) rather than a localization key.
+		/// </param>
+		void setError(
+			string message,
+			bool sessionExpired = true,
+			bool isConnectionError = false,
+			bool isRawMessage = false)
 		{
 			IsError = true;
 			ErrorMessageKey = message;
 			IsConnectionError = isConnectionError;
 			IsSessionExpiredError = sessionExpired;
+			IsRawErrorMessage = isRawMessage;
 		}
 
 		/// <summary>

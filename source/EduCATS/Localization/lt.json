@@ -49,6 +49,7 @@
 	"login_error": "Nepavyko prisijungti prie sistemos. Patikrinkite savo kredencialus.",
 	"login_user_profile_error": "Gaunant profilio duomenis įvyko klaida. Bandykite dar kartą arba susisiekite su palaikymo tarnyba.",
 	"login_user_profile_not_verify": "Jūsų paskyra nepatvirtinta. Susisiekite su mokytoju, kad patvirtintumėte paskyrą.",
+	"login_invalid_credentials": "Neteisingas vartotojo vardas arba slaptažodis",
 
 	"main_today": "Šiandien",
 	"main_learning": "Mokymai",

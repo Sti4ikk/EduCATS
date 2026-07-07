@@ -48,6 +48,7 @@
 	"login_error": "Could not log in to the system. Please check your credentials.",
 	"login_user_profile_error": "Error occurred during retrieving profile data. Please try again or contact support.",
 	"login_user_profile_not_verify": "Your account has not been verified. Contact your teacher to confirm your account.",
+	"login_invalid_credentials": "Username or password is incorrect",
 
 	"main_today": "Today",
 	"main_learning": "Learning",

@@ -49,13 +49,21 @@ namespace EduCATS.Data
 		{
 			object objectToGet;
 
-			if (isList) {
+			if (isList)
+			{
 				objectToGet = await dataAccess.GetList();
-			} else {
+			}
+			else
+			{
 				objectToGet = await dataAccess.GetSingle();
 			}
 
-			SetError(dataAccess.ErrorMessageKey, dataAccess.IsConnectionError, dataAccess.IsSessionExpiredError);
+			SetError(
+				dataAccess.ErrorMessageKey,
+				dataAccess.IsConnectionError,
+				dataAccess.IsSessionExpiredError,
+				dataAccess.IsRawErrorMessage);
+
 			return objectToGet;
 		}
 
@@ -85,15 +93,25 @@ namespace EduCATS.Data
 		/// <summary>
 		/// Set error details.
 		/// </summary>
-		/// <param name="message">Error message.</param>
+		/// <param name="message">Error message or a ready-to-display raw message.</param>
 		/// <param name="isConnectionError">Is network connection issue.</param>
 		/// <param name="sessionExpired">Is session expired issue.</param>
+		/// <param name="isRawMessage">
+		/// If <c>true</c>, <paramref name="message"/> is used as-is (e.g. text
+		/// received directly from the server) instead of being passed through
+		/// <see cref="CrossLocalization.Translate"/>.
+		/// </param>
 		/// <remarks>
 		/// Can be <c>null</c> (if no error occurred).
 		/// </remarks>
-		public static void SetError(string message, bool isConnectionError, bool sessionExpired)
+		public static void SetError(
+			string message,
+			bool isConnectionError,
+			bool sessionExpired,
+			bool isRawMessage = false)
 		{
-			if (message == null) {
+			if (message == null)
+			{
 				IsError = false;
 				IsConnectionError = false;
 				IsSessionExpiredError = false;
@@ -103,8 +121,7 @@ namespace EduCATS.Data
 			IsError = true;
 			IsConnectionError = isConnectionError;
 			IsSessionExpiredError = sessionExpired;
-			ErrorMessage = CrossLocalization.Translate(message);
+			ErrorMessage = isRawMessage ? message : CrossLocalization.Translate(message);
 		}
 	}
 }
-
