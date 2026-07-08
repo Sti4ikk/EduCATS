@@ -17,7 +17,7 @@ namespace EduCATS.Pages.Eemc.Views
 		const int _rowsCount = 2;
 		const double _buttonHeight = 50;
 		static Thickness _headerPadding = new Thickness(10);
-		static Thickness _subjectsMargin = new Thickness(0, 0, 0, 10);
+		static Thickness _subjectsMargin = new Thickness(10, 0, 10, 10);
 		static Thickness _emptyViewMargin = new Thickness(10, 0);
 		static Thickness _backButtonMargin = new Thickness(30, 0, 30, 15);
 
@@ -28,23 +28,44 @@ namespace EduCATS.Pages.Eemc.Views
 			createViews();
 		}
 
+		/// <summary>
+		/// Build page layout.
+		/// </summary>
+		/// <remarks>
+		/// Uses a <see cref="Grid"/> with an explicit <c>Star</c> row for
+		/// the collection, instead of a <see cref="StackLayout"/>. A
+		/// StackLayout only gives each child its natural size, so when
+		/// <c>Concepts</c> is empty the CollectionView (with a
+		/// multi-column GridItemsLayout) can collapse to near-zero
+		/// height on Android, hiding its EmptyView even though it's
+		/// technically present. The Star row guarantees the collection
+		/// always gets the remaining space, regardless of item count.
+		/// </remarks>
 		void createViews()
 		{
 			var headerImage = createHeaderImage();
 			var subjectsView = createSubjectsPicker();
-			var documentCollectionView = createCollection(subjectsView);
+			var documentCollectionView = createCollection();
 			var backButton = createBackButton();
 
-			Content = new StackLayout
+			var grid = new Grid
 			{
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				Spacing = _spacing,
-				Children = {
-					headerImage,
-					documentCollectionView,
-					backButton
+				RowSpacing = _spacing,
+				RowDefinitions = {
+					new RowDefinition { Height = GridLength.Auto },
+					new RowDefinition { Height = GridLength.Auto },
+					new RowDefinition { Height = GridLength.Star },
+					new RowDefinition { Height = GridLength.Auto }
 				}
 			};
+
+			grid.Add(headerImage, 0, 0);
+			grid.Add(subjectsView, 0, 1);
+			grid.Add(documentCollectionView, 0, 2);
+			grid.Add(backButton, 0, 3);
+
+			Content = grid;
 		}
 
 		Image createHeaderImage()
@@ -58,7 +79,7 @@ namespace EduCATS.Pages.Eemc.Views
 			};
 		}
 
-		CollectionView createCollection(View header)
+		CollectionView createCollection()
 		{
 			var documentsCollectionView = new CollectionView
 			{
@@ -69,14 +90,6 @@ namespace EduCATS.Pages.Eemc.Views
 				{
 					BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
 					Children = { createEmptyView() }
-				},
-				Header = new StackLayout
-				{
-					BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-					Padding = _headerPadding,
-					Children = {
-						header
-					}
 				}
 			};
 

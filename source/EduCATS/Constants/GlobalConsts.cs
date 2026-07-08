@@ -37,7 +37,7 @@ namespace EduCATS.Constants
 		/// <summary>
 		/// GitHub repository.
 		/// </summary>
-		public const string GitHubLink = "https://github.com/IlyaLehchylin/educats-xamarin";
+		public const string GitHubLink = "https://github.com/Sti4ikk/EduCATS";
 
 		/// <summary>
 		/// Language used on web-version of LMS.

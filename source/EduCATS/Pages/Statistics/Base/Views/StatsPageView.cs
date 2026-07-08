@@ -85,6 +85,7 @@ namespace EduCATS.Pages.Statistics.Base.Views
 			return new StackLayout
 			{
 				Padding = _headerPadding,
+				Spacing = 10,
 				Children = {
 					subjectsView,
 					radarChartView

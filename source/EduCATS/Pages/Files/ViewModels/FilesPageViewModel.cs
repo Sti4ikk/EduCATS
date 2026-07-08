@@ -29,7 +29,6 @@ namespace EduCATS.Pages.Files.ViewModels
 		double bytesIn;
 		double totalBytes;
 
-		object _progressDialog;
 		object _lastSelectedObject;
 
 		WebClient _client;
@@ -50,7 +49,8 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <summary>
 		/// File list.
 		/// </summary>
-		public List<FilesPageModel> FileList {
+		public List<FilesPageModel> FileList
+		{
 			get { return fileList; }
 			set { SetProperty(ref fileList, value); }
 		}
@@ -60,9 +60,52 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <summary>
 		/// Is loading.
 		/// </summary>
-		public bool IsLoading {
+		public bool IsLoading
+		{
 			get { return _isLoading; }
 			set { SetProperty(ref _isLoading, value); }
+		}
+
+		bool _isDownloading;
+
+		/// <summary>
+		/// Is a file currently being downloaded.
+		/// </summary>
+		/// <remarks>
+		/// Bind this in the View to show/hide a custom overlay with a
+		/// progress indicator. This replaces the previous approach of
+		/// using a native Acr/Controls.UserDialogs progress dialog,
+		/// which is tied to the hosting Activity and becomes unusable
+		/// (stuck at 0% / never hides) if Android recreates the
+		/// Activity while an external viewer (e.g. a PDF viewer) is on
+		/// top of the app.
+		/// </remarks>
+		public bool IsDownloading
+		{
+			get { return _isDownloading; }
+			set { SetProperty(ref _isDownloading, value); }
+		}
+
+		int _downloadPercentage;
+
+		/// <summary>
+		/// Current download percentage (0-100).
+		/// </summary>
+		public int DownloadPercentage
+		{
+			get { return _downloadPercentage; }
+			set { SetProperty(ref _downloadPercentage, value); }
+		}
+
+		string _downloadingFileName;
+
+		/// <summary>
+		/// Name of the file currently being downloaded.
+		/// </summary>
+		public string DownloadingFileName
+		{
+			get { return _downloadingFileName; }
+			set { SetProperty(ref _downloadingFileName, value); }
 		}
 
 		object _selectedItem;
@@ -70,11 +113,13 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <summary>
 		/// Selected item.
 		/// </summary>
-		public object SelectedItem {
+		public object SelectedItem
+		{
 			get { return _selectedItem; }
-			set {
+			set
+			{
 				SetProperty(ref _selectedItem, value);
-				openFile(_selectedItem);
+				Task.Run(async () => await openFile(_selectedItem));
 			}
 		}
 
@@ -83,10 +128,26 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <summary>
 		/// Refresh command.
 		/// </summary>
-		public Command RefreshCommand {
-			get {
+		public Command RefreshCommand
+		{
+			get
+			{
 				return _refreshCommand ?? (_refreshCommand = new Command(
 					async () => await update(false)));
+			}
+		}
+
+		Command _cancelDownloadCommand;
+
+		/// <summary>
+		/// Cancel current download command.
+		/// </summary>
+		/// <remarks>Bind this to a "Cancel" button in the download overlay.</remarks>
+		public Command CancelDownloadCommand
+		{
+			get
+			{
+				return _cancelDownloadCommand ?? (_cancelDownloadCommand = new Command(abortDownload));
 			}
 		}
 
@@ -97,17 +158,23 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <returns>Task.</returns>
 		async Task update(bool dialog)
 		{
-			if (dialog) {
+			if (dialog)
+			{
 				PlatformServices.Dialogs.ShowLoading();
-			} else {
+			}
+			else
+			{
 				IsLoading = true;
 			}
 
 			await update();
 
-			if (dialog) {
+			if (dialog)
+			{
 				PlatformServices.Dialogs.HideLoading();
-			} else {
+			}
+			else
+			{
 				IsLoading = false;
 			}
 		}
@@ -118,10 +185,13 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <returns>Task.</returns>
 		async Task update()
 		{
-			try {
-			await SetupSubjects();
-			await getFiles();
-			} catch (Exception ex) {
+			try
+			{
+				await SetupSubjects();
+				await getFiles();
+			}
+			catch (Exception ex)
+			{
 				AppLogs.Log(ex);
 			}
 		}
@@ -163,7 +233,8 @@ namespace EduCATS.Pages.Files.ViewModels
 				files.ForEach(file =>
 				{
 					var detail = filesDetails.FirstOrDefault(item => item.Id == file.Id);
-					if (detail == null) {
+					if (detail == null)
+					{
 						return;
 					}
 
@@ -186,40 +257,46 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// Open file.
 		/// </summary>
 		/// <param name="selectedObject">Selected object.</param>
-		void openFile(object selectedObject)
+		async Task openFile(object selectedObject)
 		{
-			try {
-				if (AppDemo.Instance.IsDemoAccount) {
+			try
+			{
+				if (AppDemo.Instance.IsDemoAccount)
+				{
 					PlatformServices.Device.MainThread(
 						() => PlatformServices.Dialogs.ShowError(
 							CrossLocalization.Translate("demo_files_download_error")));
 					return;
 				}
 
-				if (selectedObject == null || !(selectedObject is FilesPageModel)) {
+				if (selectedObject == null || !(selectedObject is FilesPageModel))
+				{
 					return;
 				}
 
 				_lastSelectedObject = selectedObject;
-				setDownloading();
 				SelectedItem = null;
 
 				var file = selectedObject as FilesPageModel;
 				var storageFilePath = Path.Combine(PlatformServices.Device.GetAppDataDirectory(), file.Name);
 
-				if (File.Exists(storageFilePath) && new FileInfo(storageFilePath).Length != 0) {
-					completeDownload(file.Name, storageFilePath);
+				if (File.Exists(storageFilePath) && new FileInfo(storageFilePath).Length != 0)
+				{
+					// File already downloaded - open immediately, no overlay needed.
+					PlatformServices.Device.MainThread(() => PlatformServices.Device.LaunchFile(storageFilePath));
 					return;
 				}
 
 				var fileUri = getFileUri(file);
-				if (fileUri == null) {
-					hideDownloading();
+				if (fileUri == null)
+				{
 					PlatformServices.Device.MainThread(
 						() => PlatformServices.Dialogs.ShowError(
 							CrossLocalization.Translate("files_downloading_error")));
 					return;
 				}
+
+				startDownloadUiState(file.Name);
 
 				totalBytes = bytesIn = 0;
 				_client = new WebClient();
@@ -233,9 +310,11 @@ namespace EduCATS.Pages.Files.ViewModels
 				_client.QueryString.Add(_filenameKey, file.Name);
 				_client.QueryString.Add(_filepathKey, storageFilePath);
 				_client.DownloadFileAsync(fileUri, storageFilePath);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				AppLogs.Log(ex);
-				hideDownloading();
+				stopDownloadUiState();
 				PlatformServices.Device.MainThread(
 					() => PlatformServices.Dialogs.ShowError(
 						CrossLocalization.Translate("files_downloading_error")));
@@ -249,29 +328,53 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <param name="e">Event arguments.</param>
 		private void downloadCompleted(object sender, AsyncCompletedEventArgs e)
 		{
-			if (sender == null) {
+			if (sender == null)
+			{
 				return;
 			}
 
-				
 			var client = sender as WebClient;
 			var fileName = client.QueryString[_filenameKey];
-			var pathForFile = client.QueryString[_filepathKey];	
-				
-			if (e.Cancelled) {
-				File.Delete(pathForFile);
-			} 
-			else 
+			var pathForFile = client.QueryString[_filepathKey];
+
+			if (e.Cancelled)
 			{
-				if (totalBytes != bytesIn || (totalBytes == bytesIn && bytesIn == 0))
+				stopDownloadUiState();
+				safeDeleteFile(pathForFile);
+				return;
+			}
+
+			var lengthKnown = totalBytes > 0;
+			var succeeded = !lengthKnown || totalBytes == bytesIn;
+
+			if (!succeeded)
+			{
+				stopDownloadUiState();
+				safeDeleteFile(pathForFile);
+				PlatformServices.Device.MainThread(() => PlatformServices.Dialogs.ShowError(
+					CrossLocalization.Translate("files_downloading_error")));
+				return;
+			}
+
+			completeDownload(fileName, pathForFile);
+		}
+
+		/// <summary>
+		/// Delete file ignoring any IO errors (e.g. file locked/missing).
+		/// </summary>
+		/// <param name="path">File path.</param>
+		void safeDeleteFile(string path)
+		{
+			try
+			{
+				if (!string.IsNullOrEmpty(path) && File.Exists(path))
 				{
-					File.Delete(pathForFile);
-					hideDownloading();
-					PlatformServices.Device.MainThread(() => PlatformServices.Dialogs.ShowError(
-						CrossLocalization.Translate("files_downloading_error")));
-					return;
+					File.Delete(path);
 				}
-				completeDownload(fileName, pathForFile);
+			}
+			catch (Exception ex)
+			{
+				AppLogs.Log(ex);
 			}
 		}
 
@@ -282,24 +385,23 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <param name="pathForFile">Path for file.</param>
 		void completeDownload(string fileName, string pathForFile)
 		{
-			hideDownloading();
+			stopDownloadUiState();
 			updateDownloadedList();
 			PlatformServices.Device.MainThread(() => PlatformServices.Device.LaunchFile(pathForFile));
-			/*Platf	ormServices.Device.MainThread(
-				() => P	latformServices.Device.ShareFile(fileName, pathForFile));*/
 		}
 
-					
 		/// <summary>
 		/// Update downloaded files in list.
 		/// </summary>
 		void updateDownloadedList()
 		{
-			if (_lastSelectedObject != null && _lastSelectedObject is FilesPageModel) {
+			if (_lastSelectedObject != null && _lastSelectedObject is FilesPageModel)
+			{
 				var fileModel = _lastSelectedObject as FilesPageModel;
 				var fileList = FileList.Select(
 					f => {
-						if (f == fileModel) {
+						if (f == fileModel)
+						{
 							f.IsDownloaded = true;
 						}
 
@@ -317,40 +419,50 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <param name="e">Event arguments.</param>
 		private void downloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
 		{
-			bytesIn = double.Parse(e.BytesReceived.ToString());
-			totalBytes = double.Parse(e.TotalBytesToReceive.ToString());
-			double percentage = bytesIn / totalBytes * 100;
-			updateDownloadingProgress(percentage);
+			bytesIn = e.BytesReceived;
+			totalBytes = e.TotalBytesToReceive;
+
+			// TotalBytesToReceive is -1 when the server doesn't send a
+			// Content-Length header - percentage can't be computed then,
+			// so we keep whatever was last known instead of showing
+			// garbage/negative values.
+			if (totalBytes <= 0)
+			{
+				return;
+			}
+
+			var percentage = (int)(bytesIn / totalBytes * 100);
+			PlatformServices.Device.MainThread(() => DownloadPercentage = percentage);
 		}
 
 		/// <summary>
-		/// Hide downloading.
+		/// Show the custom download overlay and reset its state.
 		/// </summary>
-		void hideDownloading()
-		{
-			PlatformServices.Device.MainThread(() => PlatformServices.Dialogs.HideProgress(_progressDialog));
-		}
-
-		/// <summary>
-		/// Update downloading progress.
-		/// </summary>
-		/// <param name="percentage">Percentage.</param>
-		void updateDownloadingProgress(double percentage)
-		{
-			PlatformServices.Device.MainThread(
-				() => PlatformServices.Dialogs.UpdateProgress(_progressDialog, (int)percentage));
-		}
-
-		/// <summary>
-		/// Set downloading.
-		/// </summary>
-		void setDownloading()
+		/// <param name="fileName">Name of the file being downloaded.</param>
+		void startDownloadUiState(string fileName)
 		{
 			PlatformServices.Device.MainThread(() => {
-				_progressDialog = PlatformServices.Dialogs.ShowProgress(
-					CrossLocalization.Translate("files_downloading"),
-					CrossLocalization.Translate("base_cancel"),
-					() => abortDownload());
+				DownloadingFileName = fileName;
+				DownloadPercentage = 0;
+				IsDownloading = true;
+			});
+		}
+
+		/// <summary>
+		/// Hide the custom download overlay.
+		/// </summary>
+		/// <remarks>
+		/// Unlike a native progress dialog, these are plain bindable
+		/// properties on the ViewModel, so they keep working correctly
+		/// even if Android recreates the hosting Activity while an
+		/// external app (e.g. a PDF viewer) was on top.
+		/// </remarks>
+		void stopDownloadUiState()
+		{
+			PlatformServices.Device.MainThread(() => {
+				IsDownloading = false;
+				DownloadPercentage = 0;
+				DownloadingFileName = null;
 			});
 		}
 
@@ -359,12 +471,12 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// </summary>
 		void abortDownload()
 		{
-			if (_client == null || !_client.IsBusy) {
+			if (_client == null || !_client.IsBusy)
+			{
 				return;
 			}
 
 			_client.CancelAsync();
-			PlatformServices.Dialogs.HideProgress(_progressDialog);
 		}
 
 		/// <summary>
@@ -374,14 +486,16 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <returns>File URI.</returns>
 		Uri getFileUri(FilesPageModel file)
 		{
-			if (file == null) {
+			if (file == null)
+			{
 				return null;
 			}
 
 			if (!string.IsNullOrEmpty(file.Url))
 			{
 				if (Uri.TryCreate(file.Url, UriKind.Absolute, out var fullUrl) &&
-					(fullUrl.Scheme == Uri.UriSchemeHttp || fullUrl.Scheme == Uri.UriSchemeHttps)) {
+					(fullUrl.Scheme == Uri.UriSchemeHttp || fullUrl.Scheme == Uri.UriSchemeHttps))
+				{
 					return fullUrl;
 				}
 
@@ -390,7 +504,8 @@ namespace EduCATS.Pages.Files.ViewModels
 				return metadataUrl;
 			}
 
-			if (string.IsNullOrEmpty(file.PathName) || string.IsNullOrEmpty(file.FileName)) {
+			if (string.IsNullOrEmpty(file.PathName) || string.IsNullOrEmpty(file.FileName))
+			{
 				return null;
 			}
 
@@ -400,4 +515,3 @@ namespace EduCATS.Pages.Files.ViewModels
 		}
 	}
 }
-

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using EduCATS.Data;
 using EduCATS.Data.Models;
@@ -58,6 +59,14 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		List<ConceptModel> _backupRootConceptsWithoutChildren;
 
 		/// <summary>
+		/// Guards against overlapping <see cref="update"/> calls
+		/// (e.g. user changes subject before the initial load finished),
+		/// which previously caused mismatched ShowLoading/HideLoading
+		/// calls and a stuck loading indicator.
+		/// </summary>
+		int _isUpdating;
+
+		/// <summary>
 		/// Constructor.
 		/// </summary>
 		/// <param name="dialogs">App dialogs.</param>
@@ -79,7 +88,8 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <summary>
 		/// Concepts.
 		/// </summary>
-		public List<ConceptModel> Concepts {
+		public List<ConceptModel> Concepts
+		{
 			get { return _concepts; }
 			set { SetProperty(ref _concepts, value); }
 		}
@@ -89,7 +99,8 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <summary>
 		/// Is back action possible.
 		/// </summary>
-		public bool IsBackActionPossible {
+		public bool IsBackActionPossible
+		{
 			get { return _isBackActionPossible; }
 			set { SetProperty(ref _isBackActionPossible, value); }
 		}
@@ -99,7 +110,8 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <summary>
 		/// Is root directory.
 		/// </summary>
-		public bool IsRoot {
+		public bool IsRoot
+		{
 			get { return _isRoot; }
 			set { SetProperty(ref _isRoot, value); }
 		}
@@ -109,9 +121,11 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <summary>
 		/// Selected item.
 		/// </summary>
-		public object SelectedItem {
+		public object SelectedItem
+		{
 			get { return _selectedItem; }
-			set {
+			set
+			{
 				SetProperty(ref _selectedItem, value);
 				Task.Run(async () => await openConcepts(_selectedItem));
 			}
@@ -122,8 +136,10 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <summary>
 		/// Back command.
 		/// </summary>
-		public Command BackCommand {
-			get {
+		public Command BackCommand
+		{
+			get
+			{
 				return _backCommand ?? (_backCommand = new Command(goBack));
 			}
 		}
@@ -134,24 +150,39 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <returns>Task.</returns>
 		async Task update()
 		{
-			try {
+			if (Interlocked.Exchange(ref _isUpdating, 1) == 1)
+			{
+				// An update is already running (e.g. the initial load is
+				// still in progress) - ignore this call instead of running
+				// two overlapping loads that fight over the loading dialog
+				// and leave it stuck on screen.
+				return;
+			}
+
+			try
+			{
 				PlatformServices.Dialogs.ShowLoading();
 				await SetupSubjects();
 				await setRootConcepts();
 
-				if (_searchId == -1 || _backupRootConceptsWithoutChildren == null) {
-					PlatformServices.Dialogs.HideLoading();
+				if (_searchId == -1 || _backupRootConceptsWithoutChildren == null)
+				{
 					return;
 				}
 
 				await setConceptsFromRoot(_backupRootConceptsWithoutChildren[0].Id);
 				searchForBook(_searchId);
 				IsBackActionPossible = false;
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				AppLogs.Log(ex);
 			}
-
-			PlatformServices.Dialogs.HideLoading();
+			finally
+			{
+				PlatformServices.Dialogs.HideLoading();
+				Interlocked.Exchange(ref _isUpdating, 0);
+			}
 		}
 
 		/// <summary>
@@ -164,13 +195,15 @@ namespace EduCATS.Pages.Eemc.ViewModels
 			var subjectId = CurrentSubject.Id.ToString();
 			var root = await DataAccess.GetRootConcepts(userId, subjectId);
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError) {
+			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			{
 				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
 			}
 
 			var rootConcepts = root?.Concepts;
 
-			if (rootConcepts != null) {
+			if (rootConcepts != null)
+			{
 				_backupRootConceptsWithoutChildren = new List<ConceptModel>(rootConcepts);
 				Concepts = new List<ConceptModel>(rootConcepts);
 			}
@@ -183,8 +216,10 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <returns>Task.</returns>
 		async Task openConcepts(object selectedObject)
 		{
-			try {
-				if (selectedObject == null || !(selectedObject is ConceptModel)) {
+			try
+			{
+				if (selectedObject == null || !(selectedObject is ConceptModel))
+				{
 					return;
 				}
 
@@ -192,15 +227,20 @@ namespace EduCATS.Pages.Eemc.ViewModels
 				var concept = selectedObject as ConceptModel;
 				var id = concept.Id;
 
-				if (IsRoot) {
+				if (IsRoot)
+				{
 					_rootId = id;
 					PlatformServices.Dialogs.ShowLoading();
 					await setConceptsFromRoot(id);
 					PlatformServices.Dialogs.HideLoading();
-				} else {
+				}
+				else
+				{
 					setOrOpenConcept(concept, id);
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				AppLogs.Log(ex);
 				PlatformServices.Dialogs.HideLoading();
 			}
@@ -212,13 +252,15 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <param name="id">Concept ID.</param>
 		void searchForBook(int id)
 		{
-			if (Concepts == null) {
+			if (Concepts == null)
+			{
 				return;
 			}
 
 			var concept = getConcept(Concepts, id);
 
-			if (concept != null) {
+			if (concept != null)
+			{
 				openConcept(concept);
 			}
 		}
@@ -233,7 +275,8 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		{
 			var item = concepts.FirstOrDefault(c => c.Id == id);
 
-			if (item != null) {
+			if (item != null)
+			{
 				return item;
 			}
 
@@ -256,13 +299,15 @@ namespace EduCATS.Pages.Eemc.ViewModels
 			ConceptModelTest conceptCascade = await DataAccess.GetConceptCascade(id);
 			conceptTree = JsonConvert.DeserializeObject<ConceptModel>(conceptCascade.Concept.ToString());
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError) {
+			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			{
 				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
 			}
 
 			var concepts = conceptTree?.Children;
 
-			if (concepts == null) {
+			if (concepts == null)
+			{
 				return;
 			}
 
@@ -280,17 +325,20 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <param name="id">Concept ID.</param>
 		void setOrOpenConcept(ConceptModel selectedConcept, int id)
 		{
-			if (Concepts == null) {
+			if (Concepts == null)
+			{
 				return;
 			}
 
 			var concept = Concepts.FirstOrDefault(c => c.Id == id);
 
-			if (concept == null) {
+			if (concept == null)
+			{
 				return;
 			}
 
-			if (concept.HasData && !string.IsNullOrEmpty(concept.FilePath)) {
+			if (concept.HasData && !string.IsNullOrEmpty(concept.FilePath))
+			{
 				openFile(concept.FilePath);
 				return;
 			}
@@ -304,7 +352,8 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <param name="filePath">File path.</param>
 		void openFile(string filePath)
 		{
-			if (AppDemo.Instance.IsDemoAccount) {
+			if (AppDemo.Instance.IsDemoAccount)
+			{
 				PlatformServices.Device.MainThread(
 						() => PlatformServices.Dialogs.ShowError(
 							CrossLocalization.Translate("demo_eemc_open_error")));
@@ -332,10 +381,13 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// <param name="conceptToPush">Concept to push.</param>
 		void openConcept(ConceptModel conceptToCheck, ConceptModel conceptToPush = null)
 		{
-			if (conceptToCheck.IsGroup) {
+			if (conceptToCheck.IsGroup)
+			{
 				_previousConcepts.Push(conceptToPush ?? conceptToCheck);
 				Concepts = new List<ConceptModel>(conceptToCheck.Children);
-			} else if (conceptToCheck.Container.Equals(_testString)) {
+			}
+			else if (conceptToCheck.Container != null && conceptToCheck.Container.Equals(_testString))
+			{
 				openTest(conceptToCheck.Id);
 			}
 		}
@@ -345,8 +397,10 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		/// </summary>
 		void goBack()
 		{
-			try {
-				if (_previousConcepts.Count == 0) {
+			try
+			{
+				if (_previousConcepts.Count == 0)
+				{
 					return;
 				}
 
@@ -354,23 +408,28 @@ namespace EduCATS.Pages.Eemc.ViewModels
 
 				if (previousConcept.Id == _rootId &&
 					_backupRootConceptsWithoutChildren != null &&
-					_backupRootConceptsWithoutChildren.Count > 0) {
+					_backupRootConceptsWithoutChildren.Count > 0)
+				{
 					IsRoot = true;
 					IsBackActionPossible = false;
 					Concepts = new List<ConceptModel>(_backupRootConceptsWithoutChildren);
 					return;
 				}
 
-				if (_previousConcepts.Count > 0) {
+				if (_previousConcepts.Count > 0)
+				{
 					var earlierConcept = _previousConcepts.Peek();
 					Concepts = new List<ConceptModel>(earlierConcept.Children);
-				} else {
+				}
+				else
+				{
 					Concepts = new List<ConceptModel>(_backupRootConceptsWithChildren.Children);
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				AppLogs.Log(ex);
 			}
 		}
 	}
 }
-

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Acr.UserDialogs;
@@ -47,6 +48,22 @@ namespace EduCATS.Helpers.Forms.Dialogs
 		static string _baseLoading => CrossLocalization.Translate("base_loading");
 
 		/// <summary>
+		/// Number of currently active <see cref="ShowLoading()"/> calls
+		/// across the whole app.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="UserDialogs.Instance"/> is a single app-wide HUD, not
+		/// scoped per page or per ViewModel. Multiple screens/ViewModels can
+		/// legitimately call ShowLoading/HideLoading concurrently (e.g. one
+		/// tab's load is still in flight when another tab starts its own),
+		/// and without a reference count, whichever finishes first hides
+		/// the HUD out from under the other, or leaves it stuck depending
+		/// on timing. The HUD is now only actually shown on 0-&gt;1 and only
+		/// actually hidden on 1-&gt;0.
+		/// </remarks>
+		static int _loadingCount;
+
+		/// <summary>
 		/// Property for getting <see cref="Application.Current.Windows[0].Page"/>.
 		/// </summary>
 		Page mainPage =>
@@ -78,25 +95,38 @@ namespace EduCATS.Helpers.Forms.Dialogs
 		/// <summary>
 		/// Show loading dialog.
 		/// </summary>
-		public void ShowLoading() =>
-			UserDialogs.Instance.ShowLoading(_baseLoading);
+		public void ShowLoading() => ShowLoading(_baseLoading);
 
 		/// <summary>
 		/// Show loading dialog.
 		/// </summary>
 		/// <param name="message">Dialog description.</param>
-		public void ShowLoading(string message) =>
+		public void ShowLoading(string message)
+		{
+			Interlocked.Increment(ref _loadingCount);
 			UserDialogs.Instance.ShowLoading(message);
-
-
+		}
 
 		/// <summary>
 		/// Hide loading dialog.
 		/// </summary>
-		public void HideLoading() =>
-			UserDialogs.Instance.HideHud();
+		public void HideLoading()
+		{
+			var remaining = Interlocked.Decrement(ref _loadingCount);
 
+			if (remaining < 0)
+			{
+				// Defensive: more Hide calls than Show calls happened
+				// (shouldn't occur, but avoid the counter going negative
+				// and permanently breaking future Show/Hide pairs).
+				Interlocked.Exchange(ref _loadingCount, 0);
+			}
 
+			if (remaining <= 0)
+			{
+				UserDialogs.Instance.HideHud();
+			}
+		}
 
 		/// <summary>
 		/// Show progress dialog.
@@ -110,7 +140,7 @@ namespace EduCATS.Helpers.Forms.Dialogs
 			return UserDialogs.Instance.Progress(
 				message: message,
 				cancelText: cancelText
-				//onCancel: onCancel
+			//onCancel: onCancel
 			);
 		}
 
@@ -198,4 +228,3 @@ namespace EduCATS.Helpers.Forms.Dialogs
 		}
 	}
 }
-

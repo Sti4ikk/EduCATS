@@ -11,7 +11,7 @@ using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Parental.Statistics
 {
-	class ParentalStatsPageView : StatsPageView  // ← наследуем StatsPageView
+	class ParentalStatsPageView : StatsPageView
 	{
 		static Thickness _padding = new Thickness(10, 1, 10, 1);
 		static Thickness _headerPadding = new Thickness(0, 10, 0, 10);
@@ -32,7 +32,6 @@ namespace EduCATS.Pages.Parental.Statistics
 			var headerView = createHeaderView();
 			var roundedListView = createRoundedList();
 
-			// Оборачиваем всё в ScrollView вместо вложения в ListView.Header
 			Content = new ScrollView
 			{
 				Content = new StackLayout
@@ -83,6 +82,7 @@ namespace EduCATS.Pages.Parental.Statistics
 			return new StackLayout
 			{
 				Padding = _headerPadding,
+				Spacing = 10,
 				Children = {
 					subjectsView,
 					radarChartView
