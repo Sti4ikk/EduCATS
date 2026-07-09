@@ -17,6 +17,7 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		const double _spacing = 1;
 		const double _buttonHeight = 50;
 		const double _buttonGridHeight = 100;
+		const double _descriptionMinHeight = 1;
 
 		static Thickness _buttonGridPadding = new Thickness(20);
 		static Thickness _titleLayoutPadding = new Thickness(20);
@@ -42,7 +43,8 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			speechToolbar.SetBinding(MenuItem.CommandProperty, "SpeechCommand");
 			ToolbarItems.Add(speechToolbar);
 
-			var closeToolbarItem = new ToolbarItem {
+			var closeToolbarItem = new ToolbarItem
+			{
 				IconImageSource = ImageSource.FromFile(Theme.Current.BaseCloseIcon)
 			};
 
@@ -55,7 +57,8 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			var listView = createQuestionList();
 			var buttonLayout = createButtonLayout();
 
-			var mainLayout = new StackLayout {
+			var mainLayout = new StackLayout
+			{
 				Spacing = _spacing,
 				Children = {
 					listView, buttonLayout
@@ -93,7 +96,6 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			buttonGridLayout.Add(skipButton, 0, 0);
 			buttonGridLayout.Add(acceptButton, 1, 0);
 
-			// Можно добавить небольшой отступ между кнопками
 			buttonGridLayout.ColumnSpacing = 10;
 
 			return buttonGridLayout;
@@ -101,7 +103,8 @@ namespace EduCATS.Pages.Testing.Passing.Views
 
 		Button createButton(string text, string commandString)
 		{
-			var button = new Button {
+			var button = new Button
+			{
 				HorizontalOptions = LayoutOptions.Fill,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _buttonHeight,
@@ -120,11 +123,13 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		{
 			var titleLayout = createTitleLayout();
 
-			var listView = new ListView {
+			var listView = new ListView
+			{
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
 				Header = titleLayout,
 				HasUnevenRows = true,
-				ItemTemplate = new TestAnswerDataTemplateSelector {
+				ItemTemplate = new TestAnswerDataTemplateSelector
+				{
 					SingleTemplate = new DataTemplate(typeof(TestSingleAnswerViewCell)),
 					EditableTemplate = new DataTemplate(typeof(TestEditableAnswerViewCell)),
 					MultipleTemplate = new DataTemplate(typeof(TestMultipleAnswerViewCell)),
@@ -143,20 +148,24 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		StackLayout createTitleLayout()
 		{
 			var questionLabel = createQuestionLabel();
-			var descriptionLabel = createDescriptionLabel();
-			return new StackLayout {
+			var descriptionView = createDescriptionWebView();
+			return new StackLayout
+			{
+				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
 				Padding = _titleLayoutPadding,
 				Children = {
 					questionLabel,
-					descriptionLabel
+					descriptionView
 				}
 			};
 		}
 
 		Label createQuestionLabel()
 		{
-			var questionLabel = new Label {
+			var questionLabel = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.TestPassingQuestionColor),
+				FontAttributes = FontAttributes.Bold,
 				Style = AppStyles.GetLabelStyle(NamedSize.Large)
 			};
 
@@ -164,9 +173,64 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			return questionLabel;
 		}
 
+		/// <summary>
+		/// Create the question description view.
+		/// </summary>
+		/// <remarks>
+		/// Uses <see cref="WebView"/> instead of <see cref="Label"/> with
+		/// <c>TextType.Html</c>, since the Label's HTML rendering only
+		/// supports a handful of basic tags and cannot display embedded
+		/// (base64) images sent by some questions. WebView doesn't
+		/// auto-size to its content by default, so height is measured via
+		/// JS after each navigation and applied to <c>HeightRequest</c>.
+		/// </remarks>
+		/// <returns>Description view.</returns>
+		WebView createDescriptionWebView()
+		{
+			var webView = new WebView
+			{
+				HeightRequest = _descriptionMinHeight,
+				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
+				VerticalOptions = LayoutOptions.Start,
+				HorizontalOptions = LayoutOptions.Fill
+			};
+
+			webView.SetBinding(
+				WebView.SourceProperty,
+				"Description",
+				converter: new DescriptionToHtmlSourceConverter());
+
+			webView.Navigated += async (sender, args) => await resizeToContent(webView);
+
+			return webView;
+		}
+
+		/// <summary>
+		/// Resize the WebView to fit its rendered HTML content height.
+		/// </summary>
+		/// <param name="webView">WebView to resize.</param>
+		async System.Threading.Tasks.Task resizeToContent(WebView webView)
+		{
+			try
+			{
+				var result = await webView.EvaluateJavaScriptAsync("document.body.scrollHeight");
+
+				if (double.TryParse(result, out var height) && height > 0)
+				{
+					webView.HeightRequest = height;
+				}
+			}
+			catch
+			{
+				// Ignore measurement failures - the WebView simply
+				// keeps its previous height in that case.
+			}
+		}
+
 		Label createDescriptionLabel()
 		{
-			var descriptionLabel = new Label {
+			var descriptionLabel = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.TestPassingQuestionColor),
 				TextType = TextType.Html,
 				Style = AppStyles.GetLabelStyle()
@@ -177,4 +241,3 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		}
 	}
 }
-

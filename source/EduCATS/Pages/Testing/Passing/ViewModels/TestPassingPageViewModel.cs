@@ -257,13 +257,11 @@ namespace EduCATS.Pages.Testing.Passing.ViewModels
 		{
 			var testQuestionModel = testQuestionCommonModel.Question;
 
-			if (testQuestionModel != null) {
+			if (testQuestionModel != null)
+			{
 				Question = testQuestionModel.Title;
-				Description = $"<head><meta charset=\"utf-8\">" +
-					$"<font size=\"5\" " +
-					$"color=\"{Theme.Current.TestPassingQuestionColor}\">" +
-					$"{testQuestionModel.Description}" +
-					$"</font>";
+				Description = $"<font color=\"{Theme.Current.TestPassingQuestionColor}\">" +
+					$"{testQuestionModel.Description}</font>";
 				_questionNumber = testQuestionCommonModel.Number;
 				_questionType = testQuestionModel.QuestionType;
 				setAnswers(testQuestionModel.Answers);

@@ -1,6 +1,7 @@
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui;
 
@@ -10,7 +11,8 @@ namespace EduCATS.Pages.Testing.Passing.Views.ViewCells
 	{
 		const double _arrowLayoutWidth = 50;
 		const float _frameRadius = 10;
-		static Thickness _frameMargin = new Thickness(10);
+		static Thickness _frameMargin = new Thickness(10, 5);
+		static Thickness _framePadding = new Thickness(15, 18);
 
 		public TestMovableAnswerViewCell()
 		{
@@ -18,11 +20,12 @@ namespace EduCATS.Pages.Testing.Passing.Views.ViewCells
 			var upArrow = createArrow(true, "UpMovableAnswerCommand");
 			var downArrow = createArrow(false, "DownMovableAnswerCommand");
 
-			View = new Frame
+			View = new Border
 			{
-				HasShadow = false,
 				Margin = _frameMargin,
-				CornerRadius = _frameRadius,
+				Padding = _framePadding,
+				Stroke = null,
+				StrokeShape = new RoundRectangle { CornerRadius = _frameRadius },
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor),
 				Content = new StackLayout
 				{

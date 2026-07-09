@@ -153,7 +153,6 @@
         <Folder Include="Helpers\Forms\Settings\" />
         <Folder Include="Helpers\Forms\Dialogs\" />
         <Folder Include="Helpers\Forms\Devices\" />
-        <Folder Include="Helpers\Forms\Converters\" />
         <Folder Include="Helpers\Forms\Pages\" />
         <Folder Include="Helpers\Forms\PlatformServices\" />
         <Folder Include="Helpers\Forms\PlatformServices\Interfaces\" />

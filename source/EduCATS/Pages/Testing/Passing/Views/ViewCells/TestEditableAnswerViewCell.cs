@@ -1,6 +1,7 @@
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -11,11 +12,13 @@ namespace EduCATS.Pages.Testing.Passing.Views.ViewCells
 	{
 		const float _frameRadius = 10;
 
-		static Thickness _frameMargin = new Thickness(10);
+		static Thickness _frameMargin = new Thickness(10, 5);
+		static Thickness _framePadding = new Thickness(15, 12);
 
 		public TestEditableAnswerViewCell()
 		{
-			var answerEntry = new Entry {
+			var answerEntry = new Entry
+			{
 				HorizontalOptions = LayoutOptions.Fill,
 				BackgroundColor = Color.FromArgb(Theme.Current.TestPassingEntryColor),
 				TextColor = Color.FromArgb(Theme.Current.TestPassingAnswerColor),
@@ -25,12 +28,15 @@ namespace EduCATS.Pages.Testing.Passing.Views.ViewCells
 
 			answerEntry.SetBinding(Entry.TextProperty, "ContentToAnswer");
 
-			View = new Frame {
+			View = new Border
+			{
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor),
-				HasShadow = false,
+				Stroke = null,
 				Margin = _frameMargin,
-				CornerRadius = _frameRadius,
-				Content = new StackLayout {
+				Padding = _framePadding,
+				StrokeShape = new RoundRectangle { CornerRadius = _frameRadius },
+				Content = new StackLayout
+				{
 					Orientation = StackOrientation.Horizontal,
 					Children = {
 						answerEntry
@@ -40,4 +46,3 @@ namespace EduCATS.Pages.Testing.Passing.Views.ViewCells
 		}
 	}
 }
-

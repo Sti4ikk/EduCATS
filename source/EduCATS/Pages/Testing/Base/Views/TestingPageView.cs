@@ -65,7 +65,7 @@ namespace EduCATS.Pages.Testing.Base.Views
 
 		ListView createTestList(View subjectsView)
 		{
-			var testListView = new ListView(ListViewCachingStrategy.RetainElement)
+			var testListView = new ListView(ListViewCachingStrategy.RecycleElement)
 			{
 				HasUnevenRows = true,
 				IsGroupingEnabled = true,

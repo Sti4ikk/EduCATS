@@ -2,6 +2,7 @@ using EduCATS.Data.Models;
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
@@ -10,66 +11,74 @@ namespace EduCATS.Pages.Testing.Results.Views.ViewCells
 {
 	public class TestingResultsViewCell : ViewCell
 	{
-		const double _boxSize = 30;
+		const double _boxSize = 26;
 		const float _frameRadius = 10;
+		const double _indicatorSpacing = 12;
 
-		static Thickness _frameMargin = new Thickness(10);
+		static Thickness _frameMargin = new Thickness(10, 5);
+		static Thickness _frameContentPadding = new Thickness(15, 18);
 
-
-		readonly BoxView _boxView;
+		readonly Ellipse _indicator;
 		readonly Label _answer;
 
 		TestResultsModel _results;
 
 		public TestingResultsViewCell()
 		{
-			_answer = new Label {
+			_answer = new Label
+			{
 				TextColor = Color.FromArgb(Theme.Current.TestResultsAnswerTextColor),
 				VerticalOptions = LayoutOptions.Center,
+				HorizontalOptions = LayoutOptions.FillAndExpand,
 				Style = AppStyles.GetLabelStyle()
 			};
 
-			_boxView = new BoxView {
+			_indicator = new Ellipse
+			{
 				HorizontalOptions = LayoutOptions.End,
+				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxSize,
-				WidthRequest = _boxSize,
-				CornerRadius = _boxSize / 2,
-				VerticalOptions = LayoutOptions.Center
+				WidthRequest = _boxSize
 			};
 
-			var frame = new Frame {
+			var border = new Border
+			{
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor),
-				HasShadow = false,
-				CornerRadius = _frameRadius,
+				StrokeThickness = 0,
+				StrokeShape = new RoundRectangle
+				{
+					CornerRadius = new CornerRadius(_frameRadius)
+				},
 				Margin = _frameMargin,
-				Content = new StackLayout {
+				Padding = _frameContentPadding,
+				Content = new StackLayout
+				{
 					Orientation = StackOrientation.Horizontal,
+					Spacing = _indicatorSpacing,
 					Children = {
 						_answer,
-						_boxView
+						_indicator
 					}
 				}
 			};
 
-			View = frame;
+			View = border;
 		}
 
 		protected override void OnBindingContextChanged()
 		{
 			_results = (TestResultsModel)BindingContext;
 
-			if (_results != null) {
+			if (_results != null)
+			{
 				_answer.Text = $"{_results.Number}. {_results.QuestionTitle}";
 
-				if (_results.Points == 0) {
-					_boxView.Color = Color.FromArgb(Theme.Current.TestResultsNotCorrectAnswerColor);
-				} else {
-					_boxView.Color = Color.FromArgb(Theme.Current.TestResultsCorrectAnswerColor);
-				}
+				_indicator.Fill = _results.Points == 0 ?
+					Color.FromArgb(Theme.Current.TestResultsNotCorrectAnswerColor) :
+					Color.FromArgb(Theme.Current.TestResultsCorrectAnswerColor);
 			}
 
 			base.OnBindingContextChanged();
 		}
 	}
 }
-

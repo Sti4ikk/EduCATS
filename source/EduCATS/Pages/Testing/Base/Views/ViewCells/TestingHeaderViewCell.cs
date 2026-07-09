@@ -5,7 +5,6 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
-
 namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 {
 	public class TestingHeaderViewCell : ViewCell
@@ -36,16 +35,16 @@ namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 
 			commentLabel.SetBinding(Label.TextProperty, "Comment");
 
-			var commentFrame = new Frame
+			var commentBorder = new Border
 			{
-				HasShadow = false,
 				Padding = _commentPadding,
 				Margin = _commentMargin,
+				Stroke = null,
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor),
 				Content = commentLabel
 			};
 
-			commentFrame.SetBinding(VisualElement.IsVisibleProperty, "IsCommentVisible");
+			commentBorder.SetBinding(VisualElement.IsVisibleProperty, "IsCommentVisible");
 
 			_root = new StackLayout
 			{
@@ -53,7 +52,7 @@ namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 				Padding = _padding,
 				Children = {
 					sectionLabel,
-					commentFrame
+					commentBorder
 				}
 			};
 
@@ -89,4 +88,3 @@ namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 		}
 	}
 }
-

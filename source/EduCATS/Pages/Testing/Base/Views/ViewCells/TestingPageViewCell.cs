@@ -1,6 +1,7 @@
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui;
 
@@ -9,14 +10,17 @@ namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 	public class TestingPageViewCell : ViewCell
 	{
 		const double _iconHeight = 30;
-		static Thickness _frameMargin = new Thickness(10);
+		static Thickness _borderMargin = new Thickness(10, 5);
+		static Thickness _borderPadding = new Thickness(10);
 
 		public TestingPageViewCell()
 		{
-			var frame = new Frame
+			var border = new Border
 			{
-				HasShadow = false,
-				Margin = _frameMargin,
+				Margin = _borderMargin,
+				Padding = _borderPadding,
+				Stroke = null,
+				StrokeShape = new RoundRectangle { CornerRadius = 8 },
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseBlockColor)
 			};
 
@@ -57,8 +61,8 @@ namespace EduCATS.Pages.Testing.Base.Views.ViewCells
 			stackLayout.Children.Add(titleLayout);
 			stackLayout.Children.Add(descriptionLabel);
 
-			frame.Content = stackLayout;
-			View = frame;
+			border.Content = stackLayout;
+			View = border;
 		}
 	}
 }

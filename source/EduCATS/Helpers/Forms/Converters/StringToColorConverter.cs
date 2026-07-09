@@ -19,7 +19,7 @@ namespace EduCATS.Helpers.Forms.Converters
 		/// <summary>
 		/// Default <see cref="Color"/>.
 		/// </summary>
-		static readonly Color _defaultColor = Colors.White;                        // ÇÄÅÑÜ ÑÒÎßË DEFAULT!!!!
+		static readonly Color _defaultColor = Color.FromArgb("#3F51B5");
 
 		/// <summary>
 		/// Transparent <see cref="Color"/>.
@@ -63,4 +63,3 @@ namespace EduCATS.Helpers.Forms.Converters
         }
     }
 }
-

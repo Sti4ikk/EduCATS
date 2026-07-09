@@ -3,7 +3,7 @@ using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Shapes;   // ← добавить
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Today.Base.Views.ViewCells
@@ -13,9 +13,12 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 		const double _boxViewSize = 10;
 		const double _boxViewLayoutSize = 20;
 		const double _clockIconSize = 20;
-		static Thickness _paddingTeacher = new Thickness(10, 0);
-		static Thickness _framePadding = new Thickness(10, 5, 10, 10);
-		static Thickness _paddingItem = new Thickness(25, 0);
+		const double _dateLayoutSpacing = 8;
+		const double _subjectLayoutSpacing = 8;
+		const double _informationLayoutSpacing = 8;
+		const double _mainLayoutSpacing = 6;
+		static Thickness _framePadding = new Thickness(15, 12, 15, 12);
+		static Thickness _informationPadding = new Thickness(28, 2, 0, 0);
 
 		public SubjectPageViewCell()
 		{
@@ -46,6 +49,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			var dateLayout = new StackLayout
 			{
 				Orientation = StackOrientation.Horizontal,
+				Spacing = _dateLayoutSpacing,
 				Children = {
 					clockIcon,
 					date,
@@ -53,12 +57,13 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				}
 			};
 
-			var subjectIndicator = new Ellipse   // ← было BoxView subjectBoxView
+			var subjectIndicator = new Ellipse
 			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxViewSize,
-				WidthRequest = _boxViewSize
+				WidthRequest = _boxViewSize,
+				Margin = new Thickness(0, 5, 0, 0)
 			};
 			subjectIndicator.SetBinding(
 				Ellipse.FillProperty, "Color", converter: new StringToColorConverter());
@@ -85,6 +90,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			var subjectLayout = new StackLayout
 			{
 				Orientation = StackOrientation.Horizontal,
+				Spacing = _subjectLayoutSpacing,
 				Children = {
 					boxViewLayout,
 					subject
@@ -101,7 +107,6 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			var teacher = new Label
 			{
-				Padding = _paddingTeacher,
 				VerticalOptions = LayoutOptions.Center,
 				TextColor = Color.FromArgb(Theme.Current.TodayNewsDateColor),
 				Style = AppStyles.GetLabelStyle(NamedSize.Micro)
@@ -110,8 +115,9 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 
 			var informationLayout = new StackLayout
 			{
-				Padding = _paddingItem,
+				Padding = _informationPadding,
 				Orientation = StackOrientation.Horizontal,
+				Spacing = _informationLayoutSpacing ,
 				Children = {
 					type,
 					teacher
@@ -121,6 +127,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 			View = new StackLayout
 			{
 				Padding = _framePadding,
+				Spacing = _mainLayoutSpacing,
 				BackgroundColor = Color.FromArgb(Theme.Current.TodayNewsItemBackgroundColor),
 				Children = {
 					dateLayout,
