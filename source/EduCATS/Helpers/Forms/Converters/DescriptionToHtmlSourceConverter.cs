@@ -4,18 +4,6 @@ using Microsoft.Maui.Controls;
 
 namespace EduCATS.Helpers.Forms.Converters
 {
-	/// <summary>
-	/// Wraps a raw HTML fragment (question description, may contain
-	/// data-URI images) into a full HTML document and converts it to
-	/// <see cref="HtmlWebViewSource"/> for use with <see cref="WebView"/>.
-	/// </summary>
-	/// <remarks>
-	/// <see cref="Label"/> with <c>TextType.Html</c> only supports a small
-	/// subset of tags (b, i, font, br, a) via the platform's native HTML
-	/// rendering and cannot display &lt;img&gt;/&lt;figure&gt; content -
-	/// unsupported markup is dumped as raw text instead of being parsed.
-	/// A WebView renders full HTML, including embedded base64 images.
-	/// </remarks>
 	public class DescriptionToHtmlSourceConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -27,11 +15,31 @@ namespace EduCATS.Helpers.Forms.Converters
 				return new HtmlWebViewSource { Html = string.Empty };
 			}
 
+			var mathJaxScript = string.IsNullOrEmpty(MathJaxCache.Script)
+				? "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/mml-chtml.js'></script>"
+				: $"<script>{MathJaxCache.Script}</script>";
+
 			var document = $@"
 				<html>
 				<head>
 					<meta charset='utf-8'>
 					<meta name='viewport' content='width=device-width, initial-scale=1'>
+					<script>
+						window.mathJaxReady = false;
+
+						window.MathJax = {{
+							startup: {{
+								typeset: true,
+								ready: function () {{
+									MathJax.startup.defaultReady();
+									MathJax.startup.promise.then(function () {{
+										window.mathJaxReady = true;
+									}});
+								}}
+							}}
+						}};
+					</script>
+					{mathJaxScript}
 					<style>
 						body {{ margin: 0; padding: 0; font-family: sans-serif; }}
 						img {{ max-width: 100%; height: auto; }}

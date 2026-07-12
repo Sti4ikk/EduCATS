@@ -18,6 +18,10 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		const double _buttonHeight = 50;
 		const double _buttonGridHeight = 100;
 		const double _descriptionMinHeight = 1;
+		const int _mathJaxReadyMaxAttempts = 20;
+		const int _mathJaxReadyPollDelayMs = 150;
+		const int _stabilityCheckMaxAttempts = 10;
+		const int _stabilityCheckDelayMs = 100;
 
 		static Thickness _buttonGridPadding = new Thickness(20);
 		static Thickness _titleLayoutPadding = new Thickness(20);
@@ -148,14 +152,17 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		StackLayout createTitleLayout()
 		{
 			var questionLabel = createQuestionLabel();
-			var descriptionView = createDescriptionWebView();
+			var descriptionLabel = createDescriptionLabel();
+			var descriptionWebView = createDescriptionWebView();
+
 			return new StackLayout
 			{
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
 				Padding = _titleLayoutPadding,
 				Children = {
 					questionLabel,
-					descriptionView
+					descriptionLabel,
+					descriptionWebView
 				}
 			};
 		}
@@ -174,17 +181,22 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		}
 
 		/// <summary>
-		/// Create the question description view.
+		/// Create the description WebView, used only for descriptions
+		/// that contain an embedded (base64) image.
 		/// </summary>
 		/// <remarks>
-		/// Uses <see cref="WebView"/> instead of <see cref="Label"/> with
-		/// <c>TextType.Html</c>, since the Label's HTML rendering only
-		/// supports a handful of basic tags and cannot display embedded
-		/// (base64) images sent by some questions. WebView doesn't
-		/// auto-size to its content by default, so height is measured via
-		/// JS after each navigation and applied to <c>HeightRequest</c>.
+		/// Label with <c>TextType.Html</c> only supports a handful of
+		/// basic tags and cannot display embedded images, so WebView is
+		/// used as a fallback in that case. WebView doesn't auto-size to
+		/// its content by default, so height is measured via JS after
+		/// each navigation and applied to <c>HeightRequest</c> - this is
+		/// not fully reliable inside a ListView Header (can leave a
+		/// stale/incorrect gap on some questions), so it's used only
+		/// when strictly necessary, i.e. when there's actually an image
+		/// to show. Plain text/HTML descriptions (formulas, formatting,
+		/// etc.) stay on the more stable <see cref="createDescriptionLabel"/>.
 		/// </remarks>
-		/// <returns>Description view.</returns>
+		/// <returns>Description web view.</returns>
 		WebView createDescriptionWebView()
 		{
 			var webView = new WebView
@@ -200,6 +212,11 @@ namespace EduCATS.Pages.Testing.Passing.Views
 				"Description",
 				converter: new DescriptionToHtmlSourceConverter());
 
+			webView.SetBinding(
+				IsVisibleProperty,
+				"Description",
+				converter: new HasEmbeddedImageConverter());
+
 			webView.Navigated += async (sender, args) => await resizeToContent(webView);
 
 			return webView;
@@ -213,11 +230,39 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		{
 			try
 			{
-				var result = await webView.EvaluateJavaScriptAsync("document.body.scrollHeight");
-
-				if (double.TryParse(result, out var height) && height > 0)
+				for (var i = 0; i < _mathJaxReadyMaxAttempts; i++)
 				{
+					var ready = await webView.EvaluateJavaScriptAsync(
+						"window.mathJaxReady === true ? '1' : '0'");
+
+					if (ready == "1")
+					{
+						break;
+					}
+
+					await System.Threading.Tasks.Task.Delay(_mathJaxReadyPollDelayMs);
+				}
+
+				var lastHeight = -1d;
+
+				for (var i = 0; i < _stabilityCheckMaxAttempts; i++)
+				{
+					var result = await webView.EvaluateJavaScriptAsync("document.body.scrollHeight");
+
+					if (!double.TryParse(result, out var height) || height <= 0)
+					{
+						break;
+					}
+
+					if (height == lastHeight)
+					{
+						break;
+					}
+
+					lastHeight = height;
 					webView.HeightRequest = height;
+
+					await System.Threading.Tasks.Task.Delay(_stabilityCheckDelayMs);
 				}
 			}
 			catch
@@ -227,6 +272,18 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			}
 		}
 
+		/// <summary>
+		/// Create the description label used for plain text/HTML
+		/// descriptions (formulas, formatting, etc. - no images).
+		/// </summary>
+		/// <remarks>
+		/// This is the default, stable path: Label sizes itself reliably
+		/// inside the ListView Header. Only hidden when the description
+		/// contains an embedded image, which Label's HTML rendering
+		/// can't display - <see cref="createDescriptionWebView"/> is used
+		/// instead in that case.
+		/// </remarks>
+		/// <returns>Description label.</returns>
 		Label createDescriptionLabel()
 		{
 			var descriptionLabel = new Label
@@ -237,6 +294,13 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			};
 
 			descriptionLabel.SetBinding(Label.TextProperty, "Description");
+			descriptionLabel.SetBinding(
+				IsVisibleProperty,
+				new Binding(
+					"Description",
+					converter: new HasEmbeddedImageConverter(),
+					converterParameter: "Invert"));
+
 			return descriptionLabel;
 		}
 	}

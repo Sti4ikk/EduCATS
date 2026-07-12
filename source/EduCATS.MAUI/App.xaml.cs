@@ -1,5 +1,6 @@
 ﻿using EduCATS.Fonts;
 using EduCATS.Helpers.Forms;
+using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Networking;
 using EduCATS.Pages.Login.Views;
 using Nyxbull.Plugins.CrossLocalization;
@@ -25,6 +26,9 @@ namespace EduCATS.MAUI
 			};
 
 			initialize();
+
+			_ = MathJaxCache.LoadAsync();
+
 			MainPage = new NavigationPage(new LoginPageView());
 		}
 
