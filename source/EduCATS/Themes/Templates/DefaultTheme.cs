@@ -55,6 +55,8 @@ namespace EduCATS.Themes.Templates
 		virtual public string MainStatisticsIcon => "icon_stats";
 		virtual public string MainSettingsIcon => "icon_settings";
 
+		virtual public string MainChatIcon => "icon_chat";
+
 		virtual public string TodayCalendarBackgroundColor => _whiteColor;
 		virtual public string TodaySubjectBackgroundColor => _whiteColor;
 		virtual public string TodayNewsItemBackgroundColor => _whiteColor;

@@ -4,6 +4,7 @@ using EduCATS.Pages.Learning.Views;
 using EduCATS.Pages.Settings.Base.Views;
 using EduCATS.Pages.Statistics.Base.Views;
 using EduCATS.Pages.Today.Base.Views;
+using EduCATS.Pages.Chat.Views;
 using EduCATS.Themes;
 using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls;
@@ -47,6 +48,10 @@ namespace EduCATS.Pages.Main
 				createPage(new StatsPageView(),
 				CrossLocalization.Translate("main_statistics"),
 				Theme.Current.MainStatisticsIcon));
+			Children.Add(
+				createPage(new ChatPageView(),
+				CrossLocalization.Translate("main_chat"),
+				Theme.Current.MainChatIcon));
 			Children.Add(
 				createPage(new SettingsPageView(),
 				CrossLocalization.Translate("main_settings"),

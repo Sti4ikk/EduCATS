@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using EduCATS.Constants;
 using EduCATS.Data;
 using EduCATS.Data.User;
@@ -8,10 +5,14 @@ using EduCATS.Demo;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Logs;
 using EduCATS.Networking;
+using EduCATS.Pages.Chat.Services;
 using EduCATS.Pages.Settings.Base.Models;
 using EduCATS.Themes;
-using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls;
+using Nyxbull.Plugins.CrossLocalization;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace EduCATS.Pages.Settings.Base.ViewModels
 {
@@ -262,6 +263,7 @@ namespace EduCATS.Pages.Settings.Base.ViewModels
 
 		void resetData()
 		{
+			_ = ChatHubService.DisconnectAsync();
 			AppDemo.Instance.IsDemoAccount = false;
 			_services.Preferences.ResetPrefs();
 			AppUserData.Clear();

@@ -187,6 +187,14 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// <param name="title">Title.</param>
 		/// <returns>Task.</returns>
 		Task OpenProfileAbout(string title);
+
+		/// <summary>
+		/// Open chat conversation page.
+		/// </summary>
+		/// <param name="chatId">Chat ID.</param>
+		/// <param name="title">Page title (chat participant's name).</param>
+		/// <returns>Task.</returns>
+		Task OpenConversation(int chatId, string title);
 	}
 }
 

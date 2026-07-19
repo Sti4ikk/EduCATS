@@ -47,6 +47,7 @@ namespace EduCATS.Themes.Interfaces
 		string MainLearningIcon { get; }
 		string MainStatisticsIcon { get; }
 		string MainSettingsIcon { get; }
+		string MainChatIcon { get; }
 
 		string TodayCalendarBackgroundColor { get; }
 		string TodaySubjectBackgroundColor { get; }

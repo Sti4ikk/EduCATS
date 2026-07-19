@@ -49,10 +49,12 @@
 	"login_user_profile_error": "Wystąpił błąd podczas pobierania danych profilu. Spróbuj ponownie lub skontaktuj się z obsługą klienta.",
 	"login_user_profile_not_verify": "Twoje konto nie zostało zweryfikowane. Skontaktuj się ze swoim nauczycielem, aby zweryfikować konto.",
 	"login_invalid_credentials": "Nazwa użytkownika lub hasło są nieprawidłowe.",
+
 	"main_today": "Dzisiaj",
 	"main_learning": "Uczenie",
 	"main_statistics": "Statystyk",
 	"main_settings": "Konfiguracja",
+	"main_chat": "Czaty",
 
 	"today_subjects": "Harmonogram",
 	"today_news": "Wiadomości",

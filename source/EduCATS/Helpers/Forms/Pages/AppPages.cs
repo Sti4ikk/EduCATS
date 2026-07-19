@@ -35,6 +35,7 @@ using EduCATS.Themes;
 using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using EduCATS.Pages.Chat.Views;
 
 
 namespace EduCATS.Helpers.Forms.Pages
@@ -304,5 +305,14 @@ namespace EduCATS.Helpers.Forms.Pages
 
 		public async Task OpenAddSingleMark(string title, string name, LabsVisitingList Marks, TakedLabs prOrLabStat, int sub) =>
 			await pushPage(new SaveSingleStudentMarkPageView(title, name, Marks, prOrLabStat, sub), title);
+
+		/// <summary>
+		/// Open chat conversation page.
+		/// </summary>
+		/// <param name="chatId">Chat ID.</param>
+		/// <param name="title">Page title (chat participant's name).</param>
+		/// <returns>Task.</returns>
+		public async Task OpenConversation(int chatId, string title) =>
+			await pushPage(new ConversationPageView(chatId, title), title);
 	}
 }
