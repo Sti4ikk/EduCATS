@@ -1,6 +1,7 @@
-using Newtonsoft.Json;
 using EduCATS.Controls.RoundedListView.Enums;
 using EduCATS.Controls.RoundedListView.Interfaces;
+using Newtonsoft.Json;
+using System;
 
 namespace EduCATS.Pages.Chat.Models
 {
@@ -39,6 +40,9 @@ namespace EduCATS.Pages.Chat.Models
 
 		[JsonProperty("isOnline")]
 		public bool? IsOnline { get; set; }
+
+		[JsonProperty("lastMessageDate")] // Замените на реальное название ключа из вашего API
+		public DateTime? LastMessageDate { get; set; }
 
 		/// <summary>
 		/// 2. Реализация метода интерфейса IRoundedListType.

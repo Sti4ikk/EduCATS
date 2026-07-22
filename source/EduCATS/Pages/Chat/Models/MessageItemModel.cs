@@ -38,34 +38,44 @@ namespace EduCATS.Pages.Chat.Models
 		[JsonProperty("profile")]
 		public string Profile { get; set; }
 
-		/// <summary>
-		/// "left" or "right" - who the message belongs to.
-		/// Null in some server responses; computed client-side as fallback.
-		/// </summary>
 		[JsonProperty("align")]
 		public string Align { get; set; }
 
 		[JsonProperty("chatId")]
 		public int ChatId { get; set; }
 
-		/// <summary>
-		/// Not part of server DTO - set locally by comparing
-		/// Name/sender to the current user, used for bubble alignment
-		/// when Align comes back null (server clears it for broadcast
-		/// - see MessageHub.SendMessage: msg.Align = null before
-		/// sending to the group).
-		/// </summary>
 		[JsonIgnore]
 		public bool IsMine { get; set; }
 
-		/// <summary>
-		/// Local (device timezone) version of <see cref="Time"/>.
-		/// Server sends message timestamps in UTC without an explicit
-		/// offset, so DateTimeKind comes back Unspecified - we treat it
-		/// as UTC explicitly and convert to local time for display.
-		/// </summary>
+		[JsonIgnore]
+		public bool IsImageMessage => IsImage == true;
+
+		[JsonIgnore]
+		public bool IsFileMessage => IsFile == true;
+
+
 		[JsonIgnore]
 		public DateTime LocalTime =>
 			DateTime.SpecifyKind(Time, DateTimeKind.Utc).ToLocalTime();
+
+		/// <summary>
+		/// True когда сообщение - обычный текст, без вложений.
+		/// Используется для показа/скрытия textLabel в ячейке чата.
+		/// </summary>
+		[JsonIgnore]
+		public bool IsPlainText => !IsImageMessage && !IsFileMessage;
+
+		/// <summary>
+		/// "имя_файла.pdf (123.4 KB)" для чипа файла в UI.
+		/// </summary>
+		[JsonIgnore]
+		public string FileDisplayText
+		{
+			get
+			{
+				var fileName = !string.IsNullOrEmpty(FileContent) ? FileContent : Text;
+				return string.IsNullOrEmpty(FileSize) ? fileName : $"{fileName} ({FileSize})";
+			}
+		}
 	}
 }

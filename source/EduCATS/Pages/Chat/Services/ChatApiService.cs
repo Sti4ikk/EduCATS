@@ -111,5 +111,116 @@ namespace EduCATS.Pages.Chat.Services
 				return new List<MessageItemModel>();
 			}
 		}
+
+		public static async Task<List<SubjectChatsModel>> GetGroups(int userId, string role, bool completed = false)
+		{
+			try
+			{
+				using var client = new HttpClient
+				{
+					Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+				};
+
+				var link = $"{ChatLinks.GetAllGroups}?userId={userId}&role={role}&completed={completed}";
+				var response = await client.GetAsync(link);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					IsError = true;
+					return new List<SubjectChatsModel>();
+				}
+
+				var body = await response.Content.ReadAsStringAsync();
+				return JsonConvert.DeserializeObject<List<SubjectChatsModel>>(body) ?? new List<SubjectChatsModel>();
+			}
+			catch (Exception)
+			{
+				IsError = true;
+				return new List<SubjectChatsModel>();
+			}
+		}
+
+		public static async Task<List<MessageItemModel>> GetGroupMsgs(int userId, int chatId)
+		{
+			try
+			{
+				using var client = new HttpClient
+				{
+					Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+				};
+
+				var link = $"{ChatLinks.GetGroupMsgs}?userId={userId}&chatId={chatId}";
+				var response = await client.GetAsync(link);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					IsError = true;
+					return new List<MessageItemModel>();
+				}
+
+				var body = await response.Content.ReadAsStringAsync();
+				return JsonConvert.DeserializeObject<List<MessageItemModel>>(body) ?? new List<MessageItemModel>();
+			}
+			catch (Exception)
+			{
+				IsError = true;
+				return new List<MessageItemModel>();
+			}
+		}
+
+		public static async Task MarkGroupChatAsRead(int userId, int chatId)
+		{
+			try
+			{
+				using var client = new HttpClient
+				{
+					Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+				};
+
+				var link = $"{ChatLinks.UpdateReadGroupChat}?userId={userId}&chatId={chatId}";
+				await client.GetAsync(link);
+			}
+			catch (Exception)
+			{
+				// Best-effort, same as MarkChatAsRead.
+			}
+		}
+
+		/// <summary>
+		/// Download a chat attachment's raw bytes.
+		/// </summary>
+		/// <param name="chatId">Chat id the attachment belongs to.</param>
+		/// <param name="fileName">Stored file name (as returned in
+		/// <see cref="MessageItemModel.FileContent"/>).</param>
+		/// <returns>File bytes, or <c>null</c> on failure.</returns>
+		public static async Task<byte[]> DownloadFile(int chatId, string fileName)
+		{
+			IsError = false;
+
+			try
+			{
+				using var client = new HttpClient
+				{
+					Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+				};
+
+				var encodedFileName = Uri.EscapeDataString(fileName);
+				var link = $"{ChatLinks.DownloadFile}?chatId={chatId}&file={encodedFileName}";
+				var response = await client.GetAsync(link);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					IsError = true;
+					return null;
+				}
+
+				return await response.Content.ReadAsByteArrayAsync();
+			}
+			catch (Exception)
+			{
+				IsError = true;
+				return null;
+			}
+		}
 	}
 }

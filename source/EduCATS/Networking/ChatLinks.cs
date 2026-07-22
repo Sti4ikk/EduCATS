@@ -50,5 +50,12 @@ namespace EduCATS.Networking
 		public static string ChatHub => $"{Servers.Current}/chatSignalR";
 
 		public static string UpdateReadChat => $"{Servers.Current}/catService/Chat/UpdateReadChat";
+
+		public static string UpdateReadGroupChat => $"{Servers.Current}/catService/Chat/UpdateReadGroupChat";
+
+		/// <summary>
+		/// Download a chat attachment (image or file) by its stored file name.
+		/// </summary>
+		public static string DownloadFile => $"{Servers.Current}/catService/file/Download";
 	}
 }

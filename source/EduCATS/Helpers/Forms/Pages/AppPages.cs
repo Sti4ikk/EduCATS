@@ -314,5 +314,15 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// <returns>Task.</returns>
 		public async Task OpenConversation(int chatId, string title) =>
 			await pushPage(new ConversationPageView(chatId, title), title);
+
+		/// <summary>
+		/// Open group (subject) chat conversation page.
+		/// </summary>
+		/// <param name="chatId">Group chat ID.</param>
+		/// <param name="role">Current user's chat role ("lector" or "student").</param>
+		/// <param name="title">Page title (subject + group chat name).</param>
+		/// <returns>Task.</returns>
+		public async Task OpenGroupConversation(int chatId, string role, string title) =>
+			await pushPage(new GroupConversationPageView(chatId, role, title), title);
 	}
 }

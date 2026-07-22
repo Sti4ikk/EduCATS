@@ -1,57 +1,71 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Microsoft.Maui.Controls;
 
 namespace EduCATS.Helpers.Forms.Converters
 {
-	/// <summary>
-	/// Base64 image to <see cref="ImageSource"/> converter.
-	/// </summary>
 	public class Base64ToImageSourceConverter : IValueConverter
 	{
-		/// <summary>
-		/// Base64 prefix to remove before conversion.
-		/// </summary>
-        const string _base64Prefix = "data:image/png;base64,";
+		private const string _base64Prefix = "data:image/png;base64,";
+		private const string _jpegPrefix = "data:image/jpeg;base64,";
 
-		/// <summary>
-		/// Convert.
-		/// </summary>
-		/// <param name="value">Base64 image string.</param>
-		/// <param name="targetType">Target type.</param>
-		/// <param name="parameter">Parameter.</param>
-		/// <param name="culture">Culture info.</param>
-		/// <returns>Converted <see cref="ImageSource"/>.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-			if (value == null) {
-                return null;
+		// Кэшируем готовые ImageSource по их хэш-коду
+		private static readonly Dictionary<int, ImageSource> _imageCache = new Dictionary<int, ImageSource>();
+		private static readonly object _cacheLock = new object();
+
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			if (value is not string base64Image || string.IsNullOrWhiteSpace(base64Image))
+			{
+				return null;
 			}
 
-            var base64Image = value.ToString();
+			// Быстрый расчет хэша строки вместо SHA256
+			int cacheKey = base64Image.GetHashCode();
 
-            if (base64Image == null && base64Image.Length <= _base64Prefix.Length) {
-                return null;
-            }
+			lock (_cacheLock)
+			{
+				if (_imageCache.TryGetValue(cacheKey, out var cachedSource))
+				{
+					return cachedSource;
+				}
+			}
 
-            base64Image = base64Image.Replace(_base64Prefix, "");
-			var imageBytes = System.Convert.FromBase64String(base64Image);
-            return ImageSource.FromStream(() => { return new MemoryStream(imageBytes); });
-        }
+			// Очищаем префикс
+			if (base64Image.StartsWith(_base64Prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				base64Image = base64Image.Substring(_base64Prefix.Length);
+			}
+			else if (base64Image.StartsWith(_jpegPrefix, StringComparison.OrdinalIgnoreCase))
+			{
+				base64Image = base64Image.Substring(_jpegPrefix.Length);
+			}
 
-		/// <summary>
-		/// Convert back.
-		/// </summary>
-		/// <param name="value">Value.</param>
-		/// <param name="targetType">Target type.</param>
-		/// <param name="parameter">Parameter.</param>
-		/// <param name="culture">Culture info.</param>
-		/// <returns>Object.</returns>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return null;
-        }
-    }
+			try
+			{
+				var imageBytes = System.Convert.FromBase64String(base64Image);
+
+				// FromStream с сигнатурой () => Stream создает новый поток при каждом запросе рендерера
+				var imageSource = ImageSource.FromStream(() => new MemoryStream(imageBytes));
+
+				lock (_cacheLock)
+				{
+					_imageCache[cacheKey] = imageSource;
+				}
+
+				return imageSource;
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			return null;
+		}
+	}
 }
-

@@ -4,8 +4,10 @@ using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -15,6 +17,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 	{
 		readonly IPlatformServices _services;
 		readonly int _chatId;
+
+		public event System.Action HistoryLoaded;
 
 		public ConversationPageViewModel(IPlatformServices services, int chatId, string title)
 		{
@@ -48,22 +52,21 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 		Command _sendCommand;
 
-		/// <summary>
-		/// Send command.
-		/// </summary>
-		/// <remarks>
-		/// No <c>canExecute</c> parameter here on purpose: MAUI's
-		/// <see cref="Command"/> evaluates <c>canExecute</c> once at
-		/// bind time (when <see cref="MessageText"/> is still null/empty)
-		/// and disables the bound Button forever unless something calls
-		/// <c>ChangeCanExecute()</c> on every keystroke - which nothing
-		/// did here, so the Send button (and Enter, if wired to the same
-		/// command) stayed permanently disabled. The empty-text check is
-		/// done inside <see cref="send"/> instead.
-		/// </remarks>
 		public Command SendCommand
 		{
 			get { return _sendCommand ??= new Command(async () => await send()); }
+		}
+
+		Command _attachCommand;
+
+		/// <summary>
+		/// Открывает системный пикер файлов, кодирует выбранный файл в
+		/// base64 и отправляет его через тот же SignalR-хаб, что и
+		/// текстовые сообщения (см. <see cref="MessageSendModel"/>).
+		/// </summary>
+		public Command AttachCommand
+		{
+			get { return _attachCommand ??= new Command(async () => await attach()); }
 		}
 
 		async Task loadHistory()
@@ -75,33 +78,44 @@ namespace EduCATS.Pages.Chat.ViewModels
 				var history = await ChatApiService.GetChatMsgs(AppUserData.UserId, _chatId)
 					?? new System.Collections.Generic.List<MessageItemModel>();
 
-				DateTime? lastDate = null;
-
-				foreach (var msg in history.OrderBy(m => m.Time))
+				// 1. Выносим всю тяжелую подготовку и сортировку списка в фоновый поток (Task.Run)
+				var preparedItems = await Task.Run(() =>
 				{
-					msg.Text = HtmlHelper.StripHtml(msg.Text);
-					msg.IsMine = msg.Name == AppUserData.Name;
+					var itemsList = new System.Collections.Generic.List<object>();
+					DateTime? lastDate = null;
 
-					var msgDate = msg.Time.Date;
-
-					if (lastDate == null || msgDate != lastDate.Value)
+					foreach (var msg in history.OrderBy(m => m.Time))
 					{
-						Messages.Add(new DateSeparatorModel(msgDate));
-						lastDate = msgDate;
+						if (msg.IsPlainText)
+						{
+							msg.Text = HtmlHelper.StripHtml(msg.Text);
+						}
+
+						msg.IsMine = msg.Name == AppUserData.Name;
+
+						var msgDate = msg.Time.Date;
+
+						if (lastDate == null || msgDate != lastDate.Value)
+						{
+							itemsList.Add(new DateSeparatorModel(msgDate));
+							lastDate = msgDate;
+						}
+
+						itemsList.Add(msg);
 					}
 
-					Messages.Add(msg);
-				}
+					return itemsList;
+				});
 
-				// Mark as read only after messages are actually shown.
+				// 2. Быстро присваиваем уже сформированную коллекцию на UI-потоке
+				Messages = new ObservableCollection<object>(preparedItems);
+
 				_ = ChatApiService.MarkChatAsRead(AppUserData.UserId, _chatId);
 			}
 			finally
 			{
-				// Guaranteed to run even if something above throws, so
-				// the loading overlay never gets stuck blocking the
-				// whole screen (input field, send button, everything).
 				_services.Dialogs.HideLoading();
+				HistoryLoaded?.Invoke();
 			}
 		}
 
@@ -123,9 +137,70 @@ namespace EduCATS.Pages.Chat.ViewModels
 			};
 
 			await ChatHubService.SendMessage(payload);
-			// The message we just sent comes back through "GetMessage"
-			// (Clients.Caller.SendAsync in MessageHub.SendMessage), so
-			// it isn't added to the list here - doing so would duplicate it.
+		}
+
+		async Task attach()
+		{
+			FileResult picked;
+
+			try
+			{
+				picked = await FilePicker.Default.PickAsync(PickOptions.Default);
+			}
+			catch (Exception)
+			{
+				// Пользователь отменил выбор или нет разрешений - молча выходим.
+				return;
+			}
+
+			if (picked == null)
+			{
+				return;
+			}
+
+			_services.Dialogs.ShowLoading();
+
+			try
+			{
+				using var stream = await picked.OpenReadAsync();
+				using var ms = new MemoryStream();
+				await stream.CopyToAsync(ms);
+
+				var bytes = ms.ToArray();
+				var base64 = Convert.ToBase64String(bytes);
+				var isImage = isImageExtension(picked.FileName);
+
+				var payload = new MessageSendModel
+				{
+					ChatId = _chatId,
+					UserId = AppUserData.UserId,
+					Text = picked.FileName,
+					IsImage = isImage,
+					IsFile = !isImage,
+					ImageContent = isImage ? base64 : null,
+					FileContent = isImage ? null : base64,
+					FileSize = formatFileSize(bytes.Length)
+				};
+
+				await ChatHubService.SendMessage(payload);
+			}
+			finally
+			{
+				_services.Dialogs.HideLoading();
+			}
+		}
+
+		static bool isImageExtension(string fileName)
+		{
+			var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
+			return ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
+		}
+
+		static string formatFileSize(long bytes)
+		{
+			return bytes < 1024 * 1024
+				? $"{bytes / 1024.0:F1} KB"
+				: $"{bytes / 1024.0 / 1024.0:F1} MB";
 		}
 
 		void onMessageReceived(MessageItemModel msg)
@@ -135,7 +210,11 @@ namespace EduCATS.Pages.Chat.ViewModels
 				return;
 			}
 
-			msg.Text = HtmlHelper.StripHtml(msg.Text);
+			if (msg.IsPlainText)
+			{
+				msg.Text = HtmlHelper.StripHtml(msg.Text);
+			}
+
 			msg.IsMine = msg.Name == AppUserData.Name;
 
 			MainThread.BeginInvokeOnMainThread(() =>

@@ -195,6 +195,15 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// <param name="title">Page title (chat participant's name).</param>
 		/// <returns>Task.</returns>
 		Task OpenConversation(int chatId, string title);
+
+		/// <summary>
+		/// Open group (subject) chat conversation page.
+		/// </summary>
+		/// <param name="chatId">Group chat ID.</param>
+		/// <param name="role">Current user's chat role ("lector" or "student").</param>
+		/// <param name="title">Page title (subject + group chat name).</param>
+		/// <returns>Task.</returns>
+		Task OpenGroupConversation(int chatId, string role, string title);
 	}
 }
 

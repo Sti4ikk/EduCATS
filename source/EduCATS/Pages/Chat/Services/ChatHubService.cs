@@ -13,6 +13,8 @@ namespace EduCATS.Pages.Chat.Services
 		static int? _joinedUserId;
 		static string _joinedRole;
 
+		public static string CurrentRole => _joinedRole;
+
 		public static event Action<MessageItemModel> MessageReceived;
 		public static event Action<int, bool> UserStatusChanged;
 		public static event Action<string, string> MessageRemoved;
@@ -79,6 +81,17 @@ namespace EduCATS.Pages.Chat.Services
 
 			var json = JsonConvert.SerializeObject(message);
 			await _connection.InvokeAsync("SendMessage", message.UserId.ToString(), json);
+		}
+
+		public static async Task SendGroupMessage(GroupMessageSendModel message, string role)
+		{
+			if (!IsConnected)
+			{
+				return;
+			}
+
+			var json = JsonConvert.SerializeObject(message);
+			await _connection.InvokeAsync("SendGroupMessage", message.UserId.ToString(), role, json);
 		}
 
 		/// <summary>
