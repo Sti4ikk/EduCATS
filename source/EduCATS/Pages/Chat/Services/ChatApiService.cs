@@ -222,5 +222,41 @@ namespace EduCATS.Pages.Chat.Services
 				return null;
 			}
 		}
+
+		/// <summary>
+		/// Get the roster of an academic group.
+		/// </summary>
+		/// <param name="groupId">Academic group id (not chat id - see
+		/// <c>GroupChatModel.GroupId</c>).</param>
+		/// <returns>List of students, or an empty list on failure.</returns>
+		public static async Task<List<StudentItemModel>> GetStudentsByGroupId(int groupId)
+		{
+			IsError = false;
+
+			try
+			{
+				using var client = new HttpClient
+				{
+					Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+				};
+
+				var link = $"{ChatLinks.GetStudentsByGroupId}?groupId={groupId}";
+				var response = await client.GetAsync(link);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					IsError = true;
+					return new List<StudentItemModel>();
+				}
+
+				var body = await response.Content.ReadAsStringAsync();
+				return JsonConvert.DeserializeObject<List<StudentItemModel>>(body) ?? new List<StudentItemModel>();
+			}
+			catch (Exception)
+			{
+				IsError = true;
+				return new List<StudentItemModel>();
+			}
+		}
 	}
 }

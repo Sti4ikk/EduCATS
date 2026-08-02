@@ -1,6 +1,7 @@
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Pages.Chat.Models;
+using EduCATS.Pages.Chat.Services;
 using EduCATS.Pages.Chat.ViewModels;
 using EduCATS.Themes;
 using Microsoft.Maui;
@@ -11,9 +12,9 @@ using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
 
 
 namespace EduCATS.Pages.Chat.Views
@@ -21,12 +22,16 @@ namespace EduCATS.Pages.Chat.Views
 	public class ConversationPageView : ContentPage
 	{
 		readonly ConversationPageViewModel _viewModel;
+		readonly int _chatId;
+
 		CollectionView _list;
 		Entry _entry;
 		SearchBar _searchBar;
 
 		public ConversationPageView(int chatId, string title)
 		{
+			_chatId = chatId;
+
 			_viewModel = new ConversationPageViewModel(new PlatformServices(), chatId, title);
 			BindingContext = _viewModel;
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
@@ -158,9 +163,10 @@ namespace EduCATS.Pages.Chat.Views
 			};
 
 			var phoneTap = new TapGestureRecognizer();
-			phoneTap.Tapped += (sender, e) =>
+
+			phoneTap.Tapped += async (sender, e) =>
 			{
-				// Сюда добавим логику звонков
+				await StartCall();
 			};
 			phoneIcon.GestureRecognizers.Add(phoneTap);
 
@@ -186,6 +192,30 @@ namespace EduCATS.Pages.Chat.Views
 			titleGrid.Add(iconsLayout, 1, 0);
 
 			NavigationPage.SetTitleView(this, titleGrid);
+		}
+
+		async Task StartCall()
+		{
+			try
+			{
+				await CallService.StartCall(
+					_chatId);
+
+				await Navigation.PushAsync(
+					new CallPage(
+						_chatId,
+						_viewModel.Title));
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine(
+					$"Start call error: {ex}");
+
+				await DisplayAlert(
+					"Ошибка",
+					"Не удалось начать звонок.",
+					"ОК");
+			}
 		}
 
 		void createViews()

@@ -28,5 +28,8 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Для совершения аудиозвонков приложению требуется доступ к микрофону.</string>
 </dict>
 </plist>

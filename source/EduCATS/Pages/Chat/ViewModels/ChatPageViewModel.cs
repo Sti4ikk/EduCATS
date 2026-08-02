@@ -245,7 +245,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 			SelectedGroupItem = null;
 			var role = ChatHubService.CurrentRole ?? getFallbackRole();
-			_ = _services.Navigation.OpenGroupConversation(group.Id, role, group.DisplayName);
+			_ = _services.Navigation.OpenGroupConversation(group.Id, group.GroupId, role, group.DisplayName);
 		}
 	}
 }

@@ -4,9 +4,11 @@ using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -30,6 +32,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 		readonly IPlatformServices _services;
 		readonly int _chatId;
 		readonly string _role;
+
+		public event Action HistoryLoaded;
 
 		public GroupConversationPageViewModel(IPlatformServices services, int chatId, string role, string title)
 		{
@@ -69,6 +73,18 @@ namespace EduCATS.Pages.Chat.ViewModels
 			get { return _sendCommand ??= new Command(async () => await send()); }
 		}
 
+		Command _attachCommand;
+
+		/// <summary>
+		/// Открывает системный пикер файлов, кодирует выбранный файл в
+		/// base64 и отправляет его через тот же SignalR-хаб, что и
+		/// текстовые сообщения (см. <see cref="GroupMessageSendModel"/>).
+		/// </summary>
+		public Command AttachCommand
+		{
+			get { return _attachCommand ??= new Command(async () => await attach()); }
+		}
+
 		async Task loadHistory()
 		{
 			_services.Dialogs.ShowLoading();
@@ -82,7 +98,14 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 				foreach (var msg in history.OrderBy(m => m.Time))
 				{
-					msg.Text = HtmlHelper.StripHtml(msg.Text);
+					// StripHtml только для обычного текста - для файловых/
+					// картиночных сообщений msg.Text содержит имя файла,
+					// а не HTML (см. аналогичный фикс в личном чате).
+					if (msg.IsPlainText)
+					{
+						msg.Text = HtmlHelper.StripHtml(msg.Text);
+					}
+
 					msg.IsMine = msg.Name == AppUserData.Name;
 
 					var msgDate = msg.Time.Date;
@@ -101,6 +124,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			finally
 			{
 				_services.Dialogs.HideLoading();
+				HistoryLoaded?.Invoke();
 			}
 		}
 
@@ -124,6 +148,70 @@ namespace EduCATS.Pages.Chat.ViewModels
 			await ChatHubService.SendGroupMessage(payload, _role);
 		}
 
+		async Task attach()
+		{
+			FileResult picked;
+
+			try
+			{
+				picked = await FilePicker.Default.PickAsync(PickOptions.Default);
+			}
+			catch (Exception)
+			{
+				// Пользователь отменил выбор или нет разрешений - молча выходим.
+				return;
+			}
+
+			if (picked == null)
+			{
+				return;
+			}
+
+			_services.Dialogs.ShowLoading();
+
+			try
+			{
+				using var stream = await picked.OpenReadAsync();
+				using var ms = new MemoryStream();
+				await stream.CopyToAsync(ms);
+
+				var bytes = ms.ToArray();
+				var base64 = Convert.ToBase64String(bytes);
+				var isImage = isImageExtension(picked.FileName);
+
+				var payload = new GroupMessageSendModel
+				{
+					ChatId = _chatId,
+					UserId = AppUserData.UserId,
+					Text = picked.FileName,
+					IsImage = isImage,
+					IsFile = !isImage,
+					ImageContent = isImage ? base64 : null,
+					FileContent = isImage ? null : base64,
+					FileSize = formatFileSize(bytes.Length)
+				};
+
+				await ChatHubService.SendGroupMessage(payload, _role);
+			}
+			finally
+			{
+				_services.Dialogs.HideLoading();
+			}
+		}
+
+		static bool isImageExtension(string fileName)
+		{
+			var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
+			return ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
+		}
+
+		static string formatFileSize(long bytes)
+		{
+			return bytes < 1024 * 1024
+				? $"{bytes / 1024.0:F1} KB"
+				: $"{bytes / 1024.0 / 1024.0:F1} MB";
+		}
+
 		void onMessageReceived(MessageItemModel msg)
 		{
 			if (msg.ChatId != _chatId)
@@ -131,7 +219,11 @@ namespace EduCATS.Pages.Chat.ViewModels
 				return;
 			}
 
-			msg.Text = HtmlHelper.StripHtml(msg.Text);
+			if (msg.IsPlainText)
+			{
+				msg.Text = HtmlHelper.StripHtml(msg.Text);
+			}
+
 			msg.IsMine = msg.Name == AppUserData.Name;
 
 			MainThread.BeginInvokeOnMainThread(() =>

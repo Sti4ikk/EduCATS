@@ -256,6 +256,9 @@ namespace EduCATS.Pages.Login.ViewModels
 				var role = profile.UserType == "1" ? "lector" : "student";
 				_ = ChatHubService.ConnectAndJoin(AppUserData.UserId, role);
 
+				CallService.Initialize();
+				CallNavigationService.Initialize();
+
 				_services.Navigation.OpenMain();
 			}
 			else if (profile != null && DataAccess.IsError)

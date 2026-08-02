@@ -57,5 +57,11 @@ namespace EduCATS.Networking
 		/// Download a chat attachment (image or file) by its stored file name.
 		/// </summary>
 		public static string DownloadFile => $"{Servers.Current}/catService/file/Download";
+
+		/// <summary>
+		/// Get the roster (students) of an academic group, by group id
+		/// (not chat id - see <c>GroupChatModel.GroupId</c>).
+		/// </summary>
+		public static string GetStudentsByGroupId => $"{Servers.Current}/catService/Chat/GetStudentsByGroupId";
 	}
 }

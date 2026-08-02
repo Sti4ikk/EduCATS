@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    x:Class="EduCATS.Pages.Chat.Views.CallPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+	<Grid
+        Padding="24"
+        RowDefinitions="*,Auto,Auto,Auto,*">
+
+		<VerticalStackLayout
+            Grid.Row="1"
+            Spacing="12"
+            HorizontalOptions="Center">
+
+			<Label
+                x:Name="ContactLabel"
+                FontSize="26"
+                HorizontalTextAlignment="Center" />
+
+			<Label
+                x:Name="StatusLabel"
+                FontSize="18"
+                HorizontalTextAlignment="Center" />
+
+		</VerticalStackLayout>
+
+
+		<HorizontalStackLayout
+            Grid.Row="3"
+            Spacing="16"
+            HorizontalOptions="Center">
+
+			<Button
+                x:Name="RejectButton"
+                Text="Отклонить"
+                Clicked="OnRejectClicked"
+                WidthRequest="140" />
+
+			<Button
+                x:Name="AcceptButton"
+                Text="Принять"
+                Clicked="OnAcceptClicked"
+                WidthRequest="140" />
+
+			<Button
+                x:Name="EndButton"
+                Text="Завершить"
+                Clicked="OnEndClicked"
+                WidthRequest="140"
+                IsVisible="False" />
+
+		</HorizontalStackLayout>
+
+	</Grid>
+
+</ContentPage>

@@ -319,10 +319,12 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// Open group (subject) chat conversation page.
 		/// </summary>
 		/// <param name="chatId">Group chat ID.</param>
+		/// <param name="groupId">Academic group ID (not chat ID) - needed to
+		/// fetch the group's student roster.</param>
 		/// <param name="role">Current user's chat role ("lector" or "student").</param>
 		/// <param name="title">Page title (subject + group chat name).</param>
 		/// <returns>Task.</returns>
-		public async Task OpenGroupConversation(int chatId, string role, string title) =>
-			await pushPage(new GroupConversationPageView(chatId, role, title), title);
+		public async Task OpenGroupConversation(int chatId, int groupId, string role, string title) =>
+			await pushPage(new GroupConversationPageView(chatId, groupId, role, title), title);
 	}
 }

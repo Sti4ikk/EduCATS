@@ -64,6 +64,11 @@
         "resolved": "9.2.2",
         "contentHash": "5lmFavo/18+0/yPoacKn4mrQnAXcmkZ67b9PeprBvZP3e1O1kA6u2wc8fymS8hzk9vYC9DVXLlO9ExCeTWQKSw=="
       },
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.6.2",
+        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
+      },
       "Castle.Core": {
         "type": "Transitive",
         "resolved": "5.1.1",
@@ -72,12 +77,62 @@
           "System.Diagnostics.EventLog": "6.0.0"
         }
       },
+      "Common.Logging": {
+        "type": "Transitive",
+        "resolved": "3.4.1",
+        "contentHash": "5eZ/vgEOqzLg4PypZqnJ+wMhhgHyckicbZY4iDxqQ4FtOz0CpdYZ0xQ78aszMzeAJZiLLb5VdR9tPfunVQLz6g==",
+        "dependencies": {
+          "Common.Logging.Core": "3.4.1"
+        }
+      },
+      "Common.Logging.Core": {
+        "type": "Transitive",
+        "resolved": "3.4.1",
+        "contentHash": "wLHldZHvxsSD6Ahonfj00/SkfHfKqO+YT6jsUwVm8Rch1REL9IArHAcSLXxYxYfu5/4ydGtmXvOtaH3AkVPu0A=="
+      },
+      "Concentus": {
+        "type": "Transitive",
+        "resolved": "2.2.2",
+        "contentHash": "2B9YmHPKO+k7YpAAnqmiXwiMJnfjfj1C868RszOll2iZWLnGTAiC1q21L/d7CvTan7T+hyqU8dR0Dcy3cpjVfQ=="
+      },
       "Controls.UserDialogs.Maui": {
         "type": "Transitive",
         "resolved": "1.12.0",
         "contentHash": "/QWTRIQG7rp7Y53zWdydbU90S5xk3biAL6ag09/4cgALTI/t+/r2MdaelW3KnwzU+51WoLaQ95qMiGuVUNj0sg==",
         "dependencies": {
           "Microsoft.Maui.Controls": "10.0.0"
+        }
+      },
+      "DnsClient": {
+        "type": "Transitive",
+        "resolved": "1.8.0",
+        "contentHash": "RRwtaCXkXWsx0mmsReGDqCbRLtItfUbkRJlet1FpdciVhyMGKcPd57T1+8Jki9ojHlq9fntVhXQroOOgRak8DQ=="
+      },
+      "IPNetwork2": {
+        "type": "Transitive",
+        "resolved": "2.1.2",
+        "contentHash": "DZF2SbtyqukkLSzyu0KqcXUBdhDXQ/K3QWM27vlvdPo3W+iI81pgUCNTwyynNyVc5Q9AIn0znFVVhHGbhiofUg==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "Makaretu.Dns": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "qe/5w5Q/i2Xz2ZnCq3E49kLAtVFRuuBn40C1mQPWbLDwlHM0KVDzCkFqwxDedv7JgQis66Z9AZKyo1zCTRrdYA==",
+        "dependencies": {
+          "SimpleBase": "1.3.1"
+        }
+      },
+      "Makaretu.Dns.Multicast": {
+        "type": "Transitive",
+        "resolved": "0.27.0",
+        "contentHash": "MTMq3vca9yw8sMW0knox/lZcAkDghmH6FVLTRInJZWbuYE99QI/9k9EujsXusWQ8oDySXb/gX92bfZipKehQgw==",
+        "dependencies": {
+          "Common.Logging": "3.4.1",
+          "IPNetwork2": "2.1.2",
+          "Makaretu.Dns": "2.0.1",
+          "Tmds.LibC": "0.2.0"
         }
       },
       "Microsoft.ApplicationInsights": {
@@ -364,6 +419,11 @@
         "resolved": "10.0.71",
         "contentHash": "CG4P5XF197pvvuiq9P6ZnOytlqjoZ0dv7nFpoVJw8tO+8UQ7OmdDyAEXll+e42TlJ55Pa1YeNRtQOxsMkmQ0QA=="
       },
+      "Microsoft.NETCore.Platforms": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
+      },
       "Microsoft.Testing.Extensions.Telemetry": {
         "type": "Transitive",
         "resolved": "2.1.0",
@@ -437,6 +497,14 @@
         "resolved": "4.1.0",
         "contentHash": "4ElL/aqomiUInr090VN4udqz46AuszXLrifHkLrgj0zb7na8eAoyUQt3BwDLTcGd1bSkmk3SfD02rZtKU+ZiqQ=="
       },
+      "NETStandard.Library": {
+        "type": "Transitive",
+        "resolved": "1.6.1",
+        "contentHash": "WcSp3+vP+yHNgS8EV5J7pZ9IRpeDuARBPN28by8zqff1wJQXm26PVU8L3/fYLBJVU7BtDyqNVWq2KlCVvSSR4A==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.1.0"
+        }
+      },
       "Newtonsoft.Json": {
         "type": "Transitive",
         "resolved": "13.0.4",
@@ -448,6 +516,37 @@
         "contentHash": "V6Ixpid+nnENUzNxDuSPm965p2S1JygzjWc6exsGguhvF61Vv6dDrCP/SBhVVMfAzFVb9pGotgqRXdcFKBOq+g==",
         "dependencies": {
           "Newtonsoft.Json": "12.0.3"
+        }
+      },
+      "SimpleBase": {
+        "type": "Transitive",
+        "resolved": "1.3.1",
+        "contentHash": "TqqQc+WFg3s10/PdnI2Dio0U7xEmVXhkf+ey4tOGZzjyd054rnNOLNVahJhMYmfBQdS7/jkVqC8xzLm/bkR3EA=="
+      },
+      "SIPSorcery": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "GAtHjfvD7Wn/tks5mPfEty9o1CxY4bkPA4ailK+NGAWQ9BWfYkw0OUk2Th/+p+CthWOVW8OL1pUrML/FVYSLIQ==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.6.2",
+          "Concentus": "2.2.2",
+          "DnsClient": "1.8.0",
+          "Makaretu.Dns.Multicast": "0.27.0",
+          "SIPSorcery.WebSocketSharp": "0.0.1",
+          "SIPSorceryMedia.Abstractions": "10.0.12"
+        }
+      },
+      "SIPSorcery.WebSocketSharp": {
+        "type": "Transitive",
+        "resolved": "0.0.1",
+        "contentHash": "lBlR9rZmMty2v5kPzCseAyuSv95FSoGuYZJgDy6M/qqZ/xq1ejFnOVEpXMDqBIthiTUOH8rvMcpnva7HXK0ZVw=="
+      },
+      "SIPSorceryMedia.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "CbJYv3raCRbZO/09UHYKIViG6sfetASDDxVscYiiab8D3ed2BCYTBM+UfAh7eJesKxAFNzggX4kUngBYuVWl1w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.7"
         }
       },
       "SkiaSharp": {
@@ -524,6 +623,11 @@
           "Microsoft.IdentityModel.Tokens": "8.19.1"
         }
       },
+      "Tmds.LibC": {
+        "type": "Transitive",
+        "resolved": "0.2.0",
+        "contentHash": "+RvLuNHOLW7cxzgDe9yHLoayBgjsuH2/gJtJnuVMxweKrxxYT6TwQNAmt06SFWpjwk68aRcwwD4FfMMA6tZvVA=="
+      },
       "educats": {
         "type": "Project",
         "dependencies": {
@@ -534,6 +638,7 @@
           "MonkeyCache.FileStore": "[2.1.1, )",
           "Newtonsoft.Json": "[13.0.4, )",
           "Nyxbull.Plugins.CrossLocalization": "[1.3.1, )",
+          "SIPSorcery": "[10.0.12, )",
           "SkiaSharp": "[3.119.4, )",
           "SkiaSharp.Views.Maui.Controls": "[3.119.4, )",
           "Syncfusion.Maui.Charts": "[33.2.13, )",
