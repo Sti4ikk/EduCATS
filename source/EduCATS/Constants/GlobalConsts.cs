@@ -143,6 +143,46 @@ namespace EduCATS.Constants
 		public const string DataGetRecommendationsKey = "GET_RECOMMENDATIONS_KEY";
 
 		/// <summary>
+		/// Subject lecturers info key.
+		/// </summary>
+		public const string DataGetInfoLecturesKey = "GET_INFO_LECTURES_KEY";
+
+		/// <summary>
+		/// Students statistics key.
+		/// </summary>
+		public const string DataGetStudentsStatsKey = "GET_STUDENTS_STATS_KEY";
+
+		/// <summary>
+		/// Labs visiting statistics key.
+		/// </summary>
+		public const string DataGetLabsVisitingKey = "GET_LABS_VISITING_KEY";
+
+		/// <summary>
+		/// Labs schedule key.
+		/// </summary>
+		public const string DataGetLabsScheduleKey = "GET_LABS_SCHEDULE_KEY";
+
+		/// <summary>
+		/// Practicals visiting statistics key.
+		/// </summary>
+		public const string DataGetPractsVisitingKey = "GET_PRACTS_VISITING_KEY";
+
+		/// <summary>
+		/// Practicals schedule key.
+		/// </summary>
+		public const string DataGetPractsScheduleKey = "GET_PRACTS_SCHEDULE_KEY";
+
+		/// <summary>
+		/// Lectures (EduCATS endpoint) key.
+		/// </summary>
+		public const string DataGetLecturesEducatsKey = "GET_LECTURES_EDUCATS_KEY";
+
+		/// <summary>
+		/// Concept cascade key.
+		/// </summary>
+		public const string DataGetConceptCascadeKey = "GET_CONCEPT_CASCADE_KEY";
+
+		/// <summary>
 		/// Cache expiration (in days).
 		/// </summary>
 		public const int CacheExpirationInDays = 7;

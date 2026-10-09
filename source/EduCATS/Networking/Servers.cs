@@ -62,7 +62,7 @@ namespace EduCATS.Networking
 		{
 			if (PlatformServices == null)
 			{
-				PlatformServices = new PlatformServices();
+				PlatformServices = Helpers.Forms.PlatformServices.Current;
 			}
 		}
 

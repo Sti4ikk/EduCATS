@@ -42,7 +42,7 @@ namespace EduCATS.Pages.Registration.Views
 
 		public RegistrationPageView()
 		{
-			BindingContext = new RegistrationPageViewModel(new PlatformServices());
+			BindingContext = new RegistrationPageViewModel(PlatformServices.Current);
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			setGroupData();
@@ -50,7 +50,7 @@ namespace EduCATS.Pages.Registration.Views
 
 		async void setGroupData()
 		{
-			groupData = await DataAccess.GetGroupsData();
+			groupData = (await DataAccess.GetGroupsData()).Data;
 			createView();
 		}
 

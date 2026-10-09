@@ -74,7 +74,7 @@ namespace EduCATS.Networking
 		/// <param name="services">Platform services.</param>
 		public RequestController(string url = null, IPlatformServices services = null)
 		{
-			_services = services ?? new PlatformServices();
+			_services = services ?? PlatformServices.Current;
 			Url = url;
 			_client = getOrCreateClient();
 		}
@@ -140,66 +140,53 @@ namespace EduCATS.Networking
 		/// <c>GET</c> request.
 		/// </summary>
 		/// <returns>Response.</returns>
-		async Task<HttpResponseMessage> get()
-		{
-			try
-			{
-				if (Uri == null)
-				{
-					AppLogs.Log($"GET request skipped because URL is invalid: '{Url}'", nameof(get));
-					return errorResponseMessage(HttpStatusCode.BadRequest);
-				}
-
-				setAuthorizationHeader();
-				AppLogs.Log($"GET {Uri}", nameof(get));
-
-				var response = await _client.GetAsync(Uri);
-				AppLogs.Log($"GET {Uri} -> {(int)response.StatusCode}", nameof(get));
-
-				if (response.StatusCode == HttpStatusCode.Unauthorized)
-				{
-					return errorResponseMessage(HttpStatusCode.Unauthorized);
-				}
-
-				return response;
-			}
-			catch (TaskCanceledException)
-			{
-				AppLogs.Log($"GET timeout for URL: '{Url}'", nameof(get));
-				return errorResponseMessage(HttpStatusCode.RequestTimeout);
-			}
-			catch (Exception ex)
-			{
-				AppLogs.Log(ex);
-				return errorResponseMessage(HttpStatusCode.BadRequest);
-			}
-		}
+		Task<HttpResponseMessage> get() => send(HttpMethod.Get);
 
 		/// <summary>
 		/// <c>POST</c> request.
 		/// </summary>
 		/// <returns>Response.</returns>
-		async Task<HttpResponseMessage> post()
+		Task<HttpResponseMessage> post() => send(HttpMethod.Post);
+
+		/// <summary>
+		/// Send request.
+		/// </summary>
+		/// <param name="httpMethod"><c>HTTP</c> method.</param>
+		/// <remarks>
+		/// Headers are set on a per-request <see cref="HttpRequestMessage"/>
+		/// rather than on the shared client's <c>DefaultRequestHeaders</c>:
+		/// those are not thread-safe and leak between concurrent requests.
+		/// </remarks>
+		/// <returns>Response.</returns>
+		async Task<HttpResponseMessage> send(HttpMethod httpMethod)
 		{
+			var methodName = httpMethod.Method;
+
 			try
 			{
 				if (Uri == null)
 				{
-					AppLogs.Log($"POST request skipped because URL is invalid: '{Url}'", nameof(post));
+					AppLogs.Log($"{methodName} request skipped because URL is invalid: '{Url}'", methodName);
 					return errorResponseMessage(HttpStatusCode.BadRequest);
 				}
 
-				setAuthorizationHeader();
-				AppLogs.Log($"POST {Uri}", nameof(post));
+				using var request = new HttpRequestMessage(httpMethod, Uri);
+				setAuthorizationHeader(request);
 
-				_client.DefaultRequestHeaders.Remove("Origin");
-				_client.DefaultRequestHeaders.TryAddWithoutValidation("Origin", _services.Preferences.Server);
+				if (httpMethod == HttpMethod.Post)
+				{
+					request.Headers.TryAddWithoutValidation("Origin", _services.Preferences.Server);
+					request.Content = _postContent;
+				}
 
-				var response = await _client.PostAsync(Uri, _postContent);
-				AppLogs.Log($"POST {Uri} -> {(int)response.StatusCode}", nameof(post));
+				AppLogs.Log($"{methodName} {Uri}", methodName);
+
+				var response = await _client.SendAsync(request);
+				AppLogs.Log($"{methodName} {Uri} -> {(int)response.StatusCode}", methodName);
 
 				if (response.StatusCode == HttpStatusCode.Unauthorized)
 				{
+					response.Dispose();
 					return errorResponseMessage(HttpStatusCode.Unauthorized);
 				}
 
@@ -207,7 +194,7 @@ namespace EduCATS.Networking
 			}
 			catch (TaskCanceledException)
 			{
-				AppLogs.Log($"POST timeout for URL: '{Url}'", nameof(post));
+				AppLogs.Log($"{methodName} timeout for URL: '{Url}'", methodName);
 				return errorResponseMessage(HttpStatusCode.RequestTimeout);
 			}
 			catch (Exception ex)
@@ -232,9 +219,9 @@ namespace EduCATS.Networking
 		/// <summary>
 		/// Set authorization header for endpoints that require it.
 		/// </summary>
-		void setAuthorizationHeader()
+		/// <param name="request">Request to set the header on.</param>
+		void setAuthorizationHeader(HttpRequestMessage request)
 		{
-			_client.DefaultRequestHeaders.Remove("Authorization");
 			if (!shouldAttachAuthorizationHeader())
 			{
 				return;
@@ -253,12 +240,12 @@ namespace EduCATS.Networking
 				{
 					var scheme = accessToken.Substring(0, separatorIndex);
 					var parameter = accessToken.Substring(separatorIndex + 1).Trim();
-					_client.DefaultRequestHeaders.Authorization =
+					request.Headers.Authorization =
 						new AuthenticationHeaderValue(scheme, parameter);
 					return;
 				}
 
-				_client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", accessToken);
+				request.Headers.TryAddWithoutValidation("Authorization", accessToken);
 			}
 			catch (Exception ex)
 			{
@@ -307,25 +294,18 @@ namespace EduCATS.Networking
 		/// <summary>
 		/// Create HTTP client with default config.
 		/// </summary>
+		/// <remarks>
+		/// Uses the platform's default handler, so server certificates
+		/// are validated by the OS. Never disable this validation:
+		/// it lets anyone on the network intercept credentials and tokens.
+		/// </remarks>
 		/// <returns>HTTP client instance.</returns>
 		static HttpClient createClient()
 		{
-#if ANDROID
-    var handler = new EduCATS.MAUI.Platforms.Android.CustomAndroidHandler();
-    return new HttpClient(handler)
-    {
-        Timeout = TimeSpan.FromSeconds(RequestTimeoutSeconds)
-    };
-#else
-			var handler = new HttpClientHandler
-			{
-				ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-			};
-			return new HttpClient(handler)
+			return new HttpClient
 			{
 				Timeout = TimeSpan.FromSeconds(RequestTimeoutSeconds)
 			};
-#endif
 		}
 	}
 }

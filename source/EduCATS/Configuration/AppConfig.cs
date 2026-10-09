@@ -71,7 +71,7 @@ namespace EduCATS.Configuration
 		/// </summary>
 		static void setupLocalization()
 		{
-			var assembly = typeof(App).GetTypeInfo().Assembly;
+			var assembly = typeof(GlobalConsts).GetTypeInfo().Assembly;
 
 			CrossLocalization.Initialize(
 				assembly,

@@ -29,7 +29,7 @@ namespace EduCATS.Pages.Parental.Statistics.ViewsModels
 
 			setStudents(_studentsList);
 
-			Task.Run(async () =>
+			RunOnMainThread(_service, async () =>
 			{
 				if (_studentsList == null || _studentsList.Count == 0)
 				{
@@ -71,12 +71,12 @@ namespace EduCATS.Pages.Parental.Statistics.ViewsModels
 
 			var statisticsModel = await DataAccess.GetStatistics(SubjectId, CurrentGroup.GroupId);
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (statisticsModel.IsError && !statisticsModel.IsConnectionError)
 			{
-				_service.Dialogs.ShowError(DataAccess.ErrorMessage);
+				_service.Dialogs.ShowError(statisticsModel.ErrorMessage);
 			}
 
-			return statisticsModel?.Students?.ToList();
+			return statisticsModel.Data?.Students?.ToList();
 		}
 	}
 }

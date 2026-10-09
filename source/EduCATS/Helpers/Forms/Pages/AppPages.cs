@@ -311,9 +311,20 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// </summary>
 		/// <param name="chatId">Chat ID.</param>
 		/// <param name="title">Page title (chat participant's name).</param>
+		/// <param name="peerUserId">Chat participant's ID (for the online status), 0 if unknown.</param>
 		/// <returns>Task.</returns>
-		public async Task OpenConversation(int chatId, string title) =>
-			await pushPage(new ConversationPageView(chatId, title), title);
+		public async Task OpenConversation(int chatId, string title, int peerUserId = 0) =>
+			await pushPage(new ConversationPageView(chatId, title, peerUserId), title);
+
+		/// <summary>
+		/// Open search through messages of all chats.
+		/// </summary>
+		/// <returns>Task.</returns>
+		public async Task OpenChatSearch()
+		{
+			var title = CrossLocalization.Translate("chat_search_all_title");
+			await pushPage(new ChatSearchPageView(title), title);
+		}
 
 		/// <summary>
 		/// Open group (subject) chat conversation page.

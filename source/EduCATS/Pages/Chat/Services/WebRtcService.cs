@@ -1,4 +1,5 @@
 ﻿using System;
+using EduCATS.Helpers.Logs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel;
@@ -40,7 +41,7 @@ namespace EduCATS.Pages.Chat.Services
 
 			if (status != PermissionStatus.Granted)
 			{
-				Console.WriteLine("[WebRTC] Microphone permission denied — прерываем инициализацию.");
+				AppLogs.Log("Microphone permission denied — прерываем инициализацию.", "WebRTC");
 				return;
 			}
 
@@ -67,7 +68,6 @@ namespace EduCATS.Pages.Chat.Services
 			{
 				if (candidate != null)
 				{
-					Console.WriteLine($"[WebRTC] Local ICE candidate found: {candidate.candidate}");
 
 					var jsonCandidate = JsonConvert.SerializeObject(new
 					{
@@ -80,31 +80,31 @@ namespace EduCATS.Pages.Chat.Services
 				}
 				else
 				{
-					Console.WriteLine("[WebRTC] ICE gathering finished (candidate == null).");
+					AppLogs.Log("ICE gathering finished (candidate == null).", "WebRTC");
 				}
 			};
 
 			// ДИАГНОСТИКА: состояние сбора кандидатов
 			_peerConnection.onicegatheringstatechange += (state) =>
 			{
-				Console.WriteLine($"[WebRTC] ICE gathering state: {state}");
+				AppLogs.Log($"ICE gathering state: {state}", "WebRTC");
 			};
 
 			// ДИАГНОСТИКА: состояние ICE-соединения (важнее всего для поиска проблемы)
 			_peerConnection.oniceconnectionstatechange += (state) =>
 			{
-				Console.WriteLine($"[WebRTC] ICE connection state: {state}");
+				AppLogs.Log($"ICE connection state: {state}", "WebRTC");
 			};
 
 			// ДИАГНОСТИКА: состояние обмена SDP
 			_peerConnection.onsignalingstatechange += () =>
 			{
-				Console.WriteLine($"[WebRTC] Signaling state: {_peerConnection.signalingState}");
+				AppLogs.Log($"Signaling state: {_peerConnection.signalingState}", "WebRTC");
 			};
 
 			_peerConnection.onconnectionstatechange += (state) =>
 			{
-				Console.WriteLine($"[WebRTC] Connection state: {state}");
+				AppLogs.Log($"Connection state: {state}", "WebRTC");
 
 				if (state == RTCPeerConnectionState.connected)
 				{
@@ -112,7 +112,7 @@ namespace EduCATS.Pages.Chat.Services
 				}
 				else if (state == RTCPeerConnectionState.failed || state == RTCPeerConnectionState.disconnected)
 				{
-					Console.WriteLine($"[WebRTC] Соединение не удалось / разорвано: {state}");
+					AppLogs.Log($"Соединение не удалось / разорвано: {state}", "WebRTC");
 				}
 			};
 		}
@@ -121,14 +121,14 @@ namespace EduCATS.Pages.Chat.Services
 		{
 			if (_peerConnection == null)
 			{
-				Console.WriteLine("[WebRTC] CreateOffer: _peerConnection == null");
+				AppLogs.Log("CreateOffer: _peerConnection == null", "WebRTC");
 				return null;
 			}
 
 			var offer = _peerConnection.createOffer(null);
 			await _peerConnection.setLocalDescription(offer);
 
-			Console.WriteLine("[WebRTC] Offer created and set as local description.");
+			AppLogs.Log("Offer created and set as local description.", "WebRTC");
 			return offer.sdp;
 		}
 
@@ -136,7 +136,7 @@ namespace EduCATS.Pages.Chat.Services
 		{
 			if (_peerConnection == null)
 			{
-				Console.WriteLine("[WebRTC] CreateAnswer: _peerConnection == null");
+				AppLogs.Log("CreateAnswer: _peerConnection == null", "WebRTC");
 				return null;
 			}
 
@@ -152,7 +152,7 @@ namespace EduCATS.Pages.Chat.Services
 			var answer = _peerConnection.createAnswer(null);
 			await _peerConnection.setLocalDescription(answer);
 
-			Console.WriteLine("[WebRTC] Answer created and set as local description.");
+			AppLogs.Log("Answer created and set as local description.", "WebRTC");
 			return answer.sdp;
 		}
 
@@ -169,11 +169,11 @@ namespace EduCATS.Pages.Chat.Services
 				_remoteDescriptionSet = true;
 				FlushPendingCandidates();
 
-				Console.WriteLine("[WebRTC] Remote answer set.");
+				AppLogs.Log("Remote answer set.", "WebRTC");
 			}
 			else
 			{
-				Console.WriteLine("[WebRTC] SetRemoteAnswer: _peerConnection == null");
+				AppLogs.Log("SetRemoteAnswer: _peerConnection == null", "WebRTC");
 			}
 
 			return Task.CompletedTask;
@@ -194,7 +194,7 @@ namespace EduCATS.Pages.Chat.Services
 				string candidateStr = obj.candidate;
 				if (string.IsNullOrEmpty(candidateStr))
 				{
-					Console.WriteLine("[WebRTC] Получен пустой/end-of-candidates кандидат — пропускаем.");
+					AppLogs.Log("Получен пустой/end-of-candidates кандидат — пропускаем.", "WebRTC");
 					return Task.CompletedTask;
 				}
 
@@ -210,17 +210,16 @@ namespace EduCATS.Pages.Chat.Services
 				if (_peerConnection != null && _remoteDescriptionSet)
 				{
 					_peerConnection.addIceCandidate(init);
-					Console.WriteLine($"[WebRTC] Remote ICE candidate added: {init.candidate}");
 				}
 				else
 				{
 					_pendingCandidates.Add(init);
-					Console.WriteLine("[WebRTC] Remote description ещё не готов — кандидат отложен в буфер.");
+					AppLogs.Log("Remote description ещё не готов — кандидат отложен в буфер.", "WebRTC");
 				}
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"[WebRTC] ICE Parsing error: {ex}");
+				AppLogs.Log($"ICE Parsing error: {ex}", "WebRTC");
 			}
 
 			return Task.CompletedTask;
@@ -233,7 +232,7 @@ namespace EduCATS.Pages.Chat.Services
 				return;
 			}
 
-			Console.WriteLine($"[WebRTC] Применяем {_pendingCandidates.Count} отложенных кандидатов.");
+			AppLogs.Log($"Применяем {_pendingCandidates.Count} отложенных кандидатов.", "WebRTC");
 
 			foreach (var candidate in _pendingCandidates)
 			{
@@ -249,7 +248,7 @@ namespace EduCATS.Pages.Chat.Services
 			{
 				_peerConnection.close();
 				_peerConnection = null;
-				Console.WriteLine("[WebRTC] Peer connection closed.");
+				AppLogs.Log("Peer connection closed.", "WebRTC");
 			}
 
 			_targetConnectionId = null;

@@ -18,7 +18,7 @@ namespace EduCATS.Pages.Recommendations.ViewModels
 		public RecommendationsPageViewModel(IPlatformServices services) : base(services)
 		{
 			SubjectChanged += async (id, name) => await Update(true);
-			Task.Run(async () => await Update(true));
+			RunOnMainThread(PlatformServices, () => Update(true));
 		}
 
 		List<RecommendationsPageModel> _recommendations;
@@ -86,21 +86,22 @@ namespace EduCATS.Pages.Recommendations.ViewModels
 
 		async Task getRecList()
 		{
-			var recsList = await DataAccess.GetRecommendations(CurrentSubject.Id, AppUserData.UserId);
+			var recsResult = await DataAccess.GetRecommendations(CurrentSubject.Id, AppUserData.UserId);
+			var recsList = recsResult.Data;
 			foreach(var recs in recsList)
 			{
-				if (recs.Text == "Ïðîéäèòå ïðåäòåñò")
+				if (recs.Text == "ÐŸÑ€Ð¾Ð¹Ð´Ð¸Ñ‚Ðµ Ð¿Ñ€ÐµÐ´Ñ‚ÐµÑÑ‚")
 					recs.Text = CrossLocalization.Translate("recommendations_pred_test");
-				else if(recs.Text == "Ðåêîìåíäóåìûé äëÿ ïðî÷òåíèÿ ìàòåðèàë")
+				else if(recs.Text == "Ð ÐµÐºÐ¾Ð¼ÐµÐ½Ð´ÑƒÐµÐ¼Ñ‹Ð¹ Ð´Ð»Ñ Ð¿Ñ€Ð¾Ñ‡Ñ‚ÐµÐ½Ð¸Ñ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»")
 					recs.Text = CrossLocalization.Translate("recommendations_rec_mat");
-				else if (recs.Text == "Ïðîéäèòå òåñò!")
+				else if (recs.Text == "ÐŸÑ€Ð¾Ð¹Ð´Ð¸Ñ‚Ðµ Ñ‚ÐµÑÑ‚!")
 					recs.Text = CrossLocalization.Translate("recommendations_compl_test");
-				else if (recs.Text == "Ïðîöåññ îáó÷åíèÿ çàâåðøåí")
+				else if (recs.Text == "ÐŸÑ€Ð¾Ñ†ÐµÑÑ Ð¾Ð±ÑƒÑ‡ÐµÐ½Ð¸Ñ Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½")
 					recs.Text = CrossLocalization.Translate("recommendations_end");
 			}
-			if (DataAccess.IsError && !DataAccess.IsConnectionError) {
+			if (recsResult.IsError && !recsResult.IsConnectionError) {
 				PlatformServices.Device.MainThread(
-					() => PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage));
+					() => PlatformServices.Dialogs.ShowError(recsResult.ErrorMessage));
 			}
 
 			var recommendations = recsList?.Select(r => new RecommendationsPageModel(r));

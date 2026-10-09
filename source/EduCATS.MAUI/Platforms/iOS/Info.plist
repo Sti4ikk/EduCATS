@@ -31,5 +31,10 @@
 
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Для совершения аудиозвонков приложению требуется доступ к микрофону.</string>
+
+	<key>NSCameraUsageDescription</key>
+	<string>Камера нужна, чтобы сфотографировать и отправить снимок в чат.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Доступ к фото нужен, чтобы отправить снимок из галереи в чат.</string>
 </dict>
 </plist>

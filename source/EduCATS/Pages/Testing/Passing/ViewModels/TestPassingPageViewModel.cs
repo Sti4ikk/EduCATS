@@ -169,12 +169,12 @@ namespace EduCATS.Pages.Testing.Passing.ViewModels
 		{
 			var test = await DataAccess.GetTest(_testId);
 
-			if (DataAccess.IsError) {
+			if (test.IsError) {
 				await showEndTestDialog();
 				return new TestDetailsModel();
 			}
 
-			return test;
+			return test.Data;
 		}
 		async Task showEndTestDialog()
 		{
@@ -219,12 +219,12 @@ namespace EduCATS.Pages.Testing.Passing.ViewModels
 			var question = await DataAccess.GetNextQuestion(
 				_testId, number, AppUserData.UserId);
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError) {
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+			if (question.IsError && !question.IsConnectionError) {
+				_services.Dialogs.ShowError(question.ErrorMessage);
 				return new TestQuestionModel();
 			}
 
-			return question;
+			return question.Data;
 		}
 
 		async Task answerQuestion(TestAnswerPostModel answerModel, bool isAuto = false)
@@ -235,9 +235,9 @@ namespace EduCATS.Pages.Testing.Passing.ViewModels
 					return;
 				}
 
-				await DataAccess.AnswerQuestionAndGetNext(answerModel);
+				var answerResult = await DataAccess.AnswerQuestionAndGetNext(answerModel);
 
-				if (DataAccess.IsError) {
+				if (answerResult.IsError) {
 					_services.Dialogs.ShowError(CrossLocalization.Translate("testing_end_test_notification"));
 					completeTest();
 					return;

@@ -1,9 +1,11 @@
 ﻿using System;
+using EduCATS.Controls;
 using EduCATS.Helpers.Forms.Effects;
 using EduCATS.Pages.Learning.Views;
 using EduCATS.Pages.Settings.Base.Views;
 using EduCATS.Pages.Statistics.Base.Views;
 using EduCATS.Pages.Today.Base.Views;
+using EduCATS.Pages.Chat.Services;
 using EduCATS.Pages.Chat.Views;
 using EduCATS.Themes;
 using Nyxbull.Plugins.CrossLocalization;
@@ -18,6 +20,39 @@ namespace EduCATS.Pages.Main
 {
 	public class MainPageView : TabbedPage
 	{
+		NavigationPage _chatTab;
+
+		protected override void OnAppearing()
+		{
+			base.OnAppearing();
+			ChatUnreadService.Changed += updateChatTabTitle;
+			updateChatTabTitle();
+		}
+
+		protected override void OnDisappearing()
+		{
+			base.OnDisappearing();
+			ChatUnreadService.Changed -= updateChatTabTitle;
+		}
+
+		/// <summary>
+		/// Unread messages counter in the chat tab title: "Чат (3)".
+		/// </summary>
+		/// <remarks>
+		/// TabbedPage has no cross-platform badge API.
+		/// </remarks>
+		void updateChatTabTitle()
+		{
+			if (_chatTab == null)
+			{
+				return;
+			}
+
+			var title = CrossLocalization.Translate("main_chat");
+			var unread = ChatUnreadService.TotalUnread;
+			_chatTab.Title = unread > 0 ? $"{title} ({(unread > 99 ? "99+" : unread.ToString())})" : title;
+		}
+
 		public MainPageView()
 		{
 			setAndroidConfiguration();
@@ -48,10 +83,10 @@ namespace EduCATS.Pages.Main
 				createPage(new StatsPageView(),
 				CrossLocalization.Translate("main_statistics"),
 				Theme.Current.MainStatisticsIcon));
-			Children.Add(
-				createPage(new ChatPageView(),
+			_chatTab = createPage(new ChatPageView(),
 				CrossLocalization.Translate("main_chat"),
-				Theme.Current.MainChatIcon));
+				Theme.Current.MainChatIcon);
+			Children.Add(_chatTab);
 			Children.Add(
 				createPage(new SettingsPageView(),
 				CrossLocalization.Translate("main_settings"),
@@ -60,6 +95,12 @@ namespace EduCATS.Pages.Main
 
 		NavigationPage createPage(Page page, string title, string icon)
 		{
+			// "No connection" strip above every tab.
+			if (page is ContentPage contentPage && contentPage.Content != null)
+			{
+				contentPage.Content = OfflineBanner.Wrap(contentPage.Content);
+			}
+
 			return new NavigationPage(page)
 			{
 				Title = title,

@@ -29,7 +29,7 @@ namespace EduCATS.Fonts
 		static FontSizeController()
 		{
 			if (PlatformServices == null) {
-				PlatformServices = new PlatformServices();
+				PlatformServices = Helpers.Forms.PlatformServices.Current;
 			}
 		}
 

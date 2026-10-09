@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using EduCATS.Constants;
 using EduCATS.Data;
+using EduCATS.Data.Interfaces;
 using EduCATS.Demo;
 using EduCATS.Helpers.Forms;
 using MonkeyCache.FileStore;
@@ -30,7 +31,7 @@ namespace EduCATS.UnitTests
 			_mockedOffline = Mock.Of<IPlatformServices>(ps => ps.Device.CheckConnectivity() == false);
 			_mockedConnected = Mock.Of<IPlatformServices>(ps => ps.Device.CheckConnectivity() == true);
 
-			var assembly = typeof(App).GetTypeInfo().Assembly;
+			var assembly = typeof(GlobalConsts).GetTypeInfo().Assembly;
 			CrossLocalization.Initialize(
 				assembly,
 				GlobalConsts.RunNamespace,
@@ -108,16 +109,55 @@ namespace EduCATS.UnitTests
 		public async Task GetDataSingleObjectTest()
 		{
 			var dataAccess = new DataAccess<object>(_message, null, "7", _mockedConnected);
-			var data = await DataAccess.GetDataObject(dataAccess, false);
-			Assert.NotNull(data);
+			var result = await DataAccess.GetSingleData(dataAccess);
+			Assert.NotNull(result.Data);
 		}
 
 		[Test]
 		public async Task GetDataListObjectTest()
 		{
 			var dataAccess = new DataAccess<object>(_message, null, "8", _mockedConnected);
-			var data = await DataAccess.GetDataObject(dataAccess, true);
-			Assert.NotNull(data);
+			var result = await DataAccess.GetListData(dataAccess);
+			Assert.NotNull(result.Data);
+		}
+
+		[Test]
+		public async Task ConcurrentInstancesOfSameTypeUseOwnCallbacksTest()
+		{
+			var firstResponse = new TaskCompletionSource<object>();
+			var secondResponse = new TaskCompletionSource<object>();
+			var first = new DataAccess<object>(_message, firstResponse.Task, null, _mockedConnected);
+			var second = new DataAccess<object>(_message, secondResponse.Task, null, _mockedConnected);
+
+			var firstTask = first.GetSingle();
+			var secondTask = second.GetSingle();
+			secondResponse.SetResult(new KeyValuePair<string, HttpStatusCode>("{ \"id\": 2 }", HttpStatusCode.OK));
+			firstResponse.SetResult(new KeyValuePair<string, HttpStatusCode>("{ \"id\": 1 }", HttpStatusCode.OK));
+
+			Assert.That((await firstTask).ToString(), Does.Contain("1"));
+			Assert.That((await secondTask).ToString(), Does.Contain("2"));
+		}
+
+		[Test]
+		public async Task ConcurrentRequestsKeepOwnErrorsTest()
+		{
+			var failedResponse = Task.FromResult<object>(
+				new KeyValuePair<string, HttpStatusCode>(string.Empty, HttpStatusCode.BadRequest));
+			var successResponse = Task.FromResult<object>(
+				new KeyValuePair<string, HttpStatusCode>("{ \"data\": \"test\" }", HttpStatusCode.OK));
+
+			var failedTask = DataAccess.GetSingleData(
+				new DataAccess<object>("login_error", failedResponse, null, _mockedConnected));
+			var successTask = DataAccess.GetSingleData(
+				new DataAccess<object>("login_error", successResponse, null, _mockedConnected));
+
+			var failed = await failedTask;
+			var success = await successTask;
+
+			Assert.IsTrue(failed.IsError);
+			Assert.AreEqual(CrossLocalization.Translate("login_error"), failed.ErrorMessage);
+			Assert.IsFalse(success.IsError);
+			Assert.IsNull(success.ErrorMessage);
 		}
 
 		[Test]
@@ -138,27 +178,51 @@ namespace EduCATS.UnitTests
 		}
 
 		[Test]
-		public void SetErrorMessageNullTest()
+		public void CreateResultWithoutErrorTest()
 		{
-			DataAccess.SetError(null, true, false);
-			Assert.AreEqual(false, DataAccess.IsError);
-			Assert.AreEqual(false, DataAccess.IsConnectionError);
+			var dataAccess = Mock.Of<IDataAccess<object>>(d =>
+				d.ErrorMessageKey == null && d.IsConnectionError == true);
+			var result = DataAccess.CreateResult(new object(), dataAccess);
 
-			DataAccess.SetError(null, false, false);
-			Assert.AreEqual(false, DataAccess.IsConnectionError);
+			Assert.AreEqual(false, result.IsError);
+			Assert.AreEqual(false, result.IsConnectionError);
+			Assert.IsNull(result.ErrorMessage);
 		}
 
 		[Test]
-		public void SetErrorTest()
+		public void CreateResultWithErrorTest()
 		{
 			var message = "Error message";
-			DataAccess.SetError(message, true, false);
-			Assert.AreEqual(message, DataAccess.ErrorMessage);
-			Assert.AreEqual(true, DataAccess.IsError);
-			Assert.AreEqual(true, DataAccess.IsConnectionError);
+			var dataAccess = Mock.Of<IDataAccess<object>>(d =>
+				d.ErrorMessageKey == message && d.IsConnectionError == true && d.IsRawErrorMessage == true);
+			var result = DataAccess.CreateResult(new object(), dataAccess);
 
-			DataAccess.SetError(message, false, false);
-			Assert.AreEqual(false, DataAccess.IsConnectionError);
+			Assert.AreEqual(message, result.ErrorMessage);
+			Assert.AreEqual(true, result.IsError);
+			Assert.AreEqual(true, result.IsConnectionError);
+		}
+
+		[Test]
+		public void CreateResultTranslatesLocalizationKeyTest()
+		{
+			var dataAccess = Mock.Of<IDataAccess<object>>(d =>
+				d.ErrorMessageKey == "base_connection_error" && d.IsRawErrorMessage == false);
+			var result = DataAccess.CreateResult(new object(), dataAccess);
+
+			Assert.AreEqual(CrossLocalization.Translate("base_connection_error"), result.ErrorMessage);
+			Assert.AreNotEqual("base_connection_error", result.ErrorMessage);
+		}
+
+		[Test]
+		public void DataResultMapKeepsErrorTest()
+		{
+			var result = new DataResult<string>("text", "error", true, true);
+			var mapped = result.Map(text => text.Length);
+
+			Assert.AreEqual(4, mapped.Data);
+			Assert.AreEqual("error", mapped.ErrorMessage);
+			Assert.IsTrue(mapped.IsConnectionError);
+			Assert.IsTrue(mapped.IsSessionExpiredError);
 		}
 
 		[Test]

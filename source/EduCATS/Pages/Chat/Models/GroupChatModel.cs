@@ -1,6 +1,4 @@
 using Newtonsoft.Json;
-using EduCATS.Controls.RoundedListView.Enums;
-using EduCATS.Controls.RoundedListView.Interfaces;
 
 namespace EduCATS.Pages.Chat.Models
 {
@@ -8,11 +6,8 @@ namespace EduCATS.Pages.Chat.Models
 	/// Mirrors server-side Entities.DTO.GroupChatDto - a single group
 	/// chat inside a subject (usually per student sub-group).
 	/// </summary>
-	public class GroupChatModel : IRoundedListType
+	public class GroupChatModel : ChatListItemModel
 	{
-		[JsonProperty("id")]
-		public int Id { get; set; }
-
 		[JsonProperty("name")]
 		public string Name { get; set; }
 
@@ -21,9 +16,6 @@ namespace EduCATS.Pages.Chat.Models
 
 		[JsonProperty("groupId")]
 		public int GroupId { get; set; }
-
-		[JsonProperty("unread")]
-		public int Unread { get; set; }
 
 		[JsonProperty("isActiveOnCurrentGroup")]
 		public bool IsActiveOnCurrentGroup { get; set; }
@@ -45,6 +37,7 @@ namespace EduCATS.Pages.Chat.Models
 			? Name
 			: $"{SubjectName} — {Name}";
 
-		public RoundedListTypeEnum GetListType() => RoundedListTypeEnum.Navigation;
+		[JsonIgnore]
+		public override bool IsGroupChat => true;
 	}
 }

@@ -39,7 +39,7 @@ namespace EduCATS.Networking.AppServices
 
 		public AppWebServiceController(IPlatformServices services = null)
 		{
-			_services = services ?? new PlatformServices();
+			_services = services ?? PlatformServices.Current;
 		}
 
 		public async Task SendRequest(HttpMethod httpMethod, string url, string content = null)

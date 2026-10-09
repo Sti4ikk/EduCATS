@@ -59,6 +59,12 @@
           "Microsoft.Testing.Platform.MSBuild": "2.1.0"
         }
       },
+      "SkiaSharp.NativeAssets.Linux.NoDependencies": {
+        "type": "Direct",
+        "requested": "[3.119.4, )",
+        "resolved": "3.119.4",
+        "contentHash": "iFnpOfZoim2SwhSPy0EJNZtQAaWM7D0A6Q1YvquwOXUdQAFrSy81Tfb1I4c0IHrrQnoVjcZPcwOc1+VM2ja77w=="
+      },
       "Acr.UserDialogs": {
         "type": "Transitive",
         "resolved": "9.2.2",

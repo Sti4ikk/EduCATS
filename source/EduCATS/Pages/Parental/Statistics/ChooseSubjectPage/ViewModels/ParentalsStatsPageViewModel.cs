@@ -133,12 +133,12 @@ namespace EduCATS.Pages.Parental.Statistics
 				var statisticsModel = await DataAccess.GetStatistics(
 					CurrentSubject.Id, Group.GroupId);
 
-				if (DataAccess.IsError && !DataAccess.IsConnectionError)
+				if (statisticsModel.IsError && !statisticsModel.IsConnectionError)
 				{
-					PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+					PlatformServices.Dialogs.ShowError(statisticsModel.ErrorMessage);
 				}
 
-				return statisticsModel.Students?.ToList();
+				return statisticsModel.Data?.Students?.ToList();
 			}
 			catch (Exception ex)
 			{

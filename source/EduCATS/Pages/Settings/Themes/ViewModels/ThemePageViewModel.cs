@@ -40,6 +40,7 @@ namespace EduCATS.Pages.Settings.Themes.ViewModels
 		{
 			try {
 				ThemeList = new List<ThemePageModel> {
+					getThemeDetails(AppTheme.ThemeSystem),
 					getThemeDetails(AppTheme.ThemeDefault),
 					getThemeDetails(AppTheme.ThemeDark)
 				};

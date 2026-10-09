@@ -38,7 +38,7 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.Views
 				{
 					NameOfLabOrPractice.Add(pract.ShortName);
 				}
-				BindingContext = new SaveSingleStudentMarkPageViewModel(new PlatformServices(),
+				BindingContext = new SaveSingleStudentMarkPageViewModel(PlatformServices.Current,
 					NameOfLabOrPractice, marks, prOrLabStat, title, name, subGruop);
 			}
 			else if (title == CrossLocalization.Translate("stats_page_labs_rating"))
@@ -50,7 +50,7 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.Views
 						NameOfLabOrPractice.Add(lab.ShortName);
 					}
 				}
-				BindingContext = new SaveSingleStudentMarkPageViewModel(new PlatformServices(),
+				BindingContext = new SaveSingleStudentMarkPageViewModel(PlatformServices.Current,
 					NameOfLabOrPractice, marks, prOrLabStat, title, name, subGruop);
 			}
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);

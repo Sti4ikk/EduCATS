@@ -59,6 +59,16 @@ namespace EduCATS.Networking
 		public static string DownloadFile => $"{Servers.Current}/catService/file/Download";
 
 		/// <summary>
+		/// Upload chat attachment (multipart form).
+		/// </summary>
+		public static string UploadFile => $"{Servers.Current}/catService/file/UploadFile";
+
+		/// <summary>
+		/// Search messages of a chat.
+		/// </summary>
+		public static string SearchMessages => $"{Servers.Current}/catService/Message/SearchMessages";
+
+		/// <summary>
 		/// Get the roster (students) of an academic group, by group id
 		/// (not chat id - see <c>GroupChatModel.GroupId</c>).
 		/// </summary>

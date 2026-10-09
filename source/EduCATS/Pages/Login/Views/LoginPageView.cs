@@ -44,7 +44,7 @@ namespace EduCATS.Pages.Login.Views
 		public LoginPageView()
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
-			BindingContext = new LoginPageViewModel(new PlatformServices());
+			BindingContext = new LoginPageViewModel(PlatformServices.Current);
 			createViews();
 		}
 
@@ -178,6 +178,7 @@ namespace EduCATS.Pages.Login.Views
 			var tapGestureRecognizer = new TapGestureRecognizer();
 			tapGestureRecognizer.SetBinding(TapGestureRecognizer.CommandProperty, "SettingsCommand");
 			settingsIcon.GestureRecognizers.Add(tapGestureRecognizer);
+			SemanticProperties.SetDescription(settingsIcon, CrossLocalization.Translate("main_settings"));
 			return settingsIcon;
 		}
 
@@ -355,6 +356,7 @@ namespace EduCATS.Pages.Login.Views
 			var showPasswordTapGesture = new TapGestureRecognizer();
 			showPasswordTapGesture.SetBinding(TapGestureRecognizer.CommandProperty, "HidePasswordCommand");
 			showPasswordImage.GestureRecognizers.Add(showPasswordTapGesture);
+			SemanticProperties.SetDescription(showPasswordImage, CrossLocalization.Translate("a11y_show_password"));
 			return showPasswordImage;
 		}
 

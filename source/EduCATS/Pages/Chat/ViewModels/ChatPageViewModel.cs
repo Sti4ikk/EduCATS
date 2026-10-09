@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EduCATS.Data.User;
 using EduCATS.Helpers.Forms;
+using EduCATS.Helpers.Logs;
 using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
 using Nyxbull.Plugins.CrossLocalization;
@@ -19,7 +20,117 @@ namespace EduCATS.Pages.Chat.ViewModels
 		{
 			_services = services;
 			IsPersonalMode = true;
-			_ = update(true);
+		}
+
+		bool _isActive;
+
+		/// <summary>
+		/// Chats are loaded when the tab is opened for the first time,
+		/// not when the app starts (all tabs are created at once).
+		/// </summary>
+		bool _isLoaded;
+
+		/// <summary>
+		/// Start following online statuses, unread counters and local settings.
+		/// </summary>
+		/// <remarks>
+		/// Subscriptions to static services live only while the tab is shown,
+		/// so the view model isn't kept alive after logout.
+		/// </remarks>
+		public void Activate()
+		{
+			if (_isActive)
+			{
+				return;
+			}
+
+			_isActive = true;
+			ChatPresenceService.Changed += onPresenceChanged;
+			ChatUnreadService.Changed += onUnreadChanged;
+			ChatLocalSettings.Changed += onLocalSettingsChanged;
+
+			if (!_isLoaded)
+			{
+				_isLoaded = true;
+				_ = update(true);
+				return;
+			}
+
+			// Statuses and counters could change while the tab was hidden.
+			syncWithServices();
+			applyFilter();
+		}
+
+		public void Deactivate()
+		{
+			if (!_isActive)
+			{
+				return;
+			}
+
+			_isActive = false;
+			ChatPresenceService.Changed -= onPresenceChanged;
+			ChatUnreadService.Changed -= onUnreadChanged;
+			ChatLocalSettings.Changed -= onLocalSettingsChanged;
+		}
+
+		Command _searchMessagesCommand;
+
+		/// <summary>
+		/// Open search through messages of all chats.
+		/// </summary>
+		public Command SearchMessagesCommand =>
+			_searchMessagesCommand ??= new Command(async () => await _services.Navigation.OpenChatSearch());
+
+		void onPresenceChanged(int userId, bool isOnline)
+		{
+			foreach (var chat in _allChats.Where(c => c.UserId == userId))
+			{
+				chat.IsOnline = isOnline;
+			}
+		}
+
+		void onUnreadChanged()
+		{
+			foreach (var chat in _allChats)
+			{
+				chat.Unread = ChatUnreadService.Get(chat.Id, false);
+			}
+
+			foreach (var group in _allGroupChats)
+			{
+				group.Unread = ChatUnreadService.Get(group.Id, true);
+			}
+		}
+
+		void onLocalSettingsChanged()
+		{
+			syncWithServices();
+			applyFilter();
+		}
+
+		/// <summary>
+		/// Apply online statuses, unread counters and pin/mute settings to the items.
+		/// </summary>
+		void syncWithServices()
+		{
+			var pinnedPersonal = ChatLocalSettings.GetPinned(isGroup: false);
+			var mutedPersonal = ChatLocalSettings.GetMuted(isGroup: false);
+			var pinnedGroup = ChatLocalSettings.GetPinned(isGroup: true);
+			var mutedGroup = ChatLocalSettings.GetMuted(isGroup: true);
+
+			foreach (var chat in _allChats)
+			{
+				chat.IsPinned = pinnedPersonal.Contains(chat.Id);
+				chat.IsMuted = mutedPersonal.Contains(chat.Id);
+				chat.IsOnline = ChatPresenceService.Get(chat.UserId) ?? chat.IsOnline;
+			}
+
+			foreach (var group in _allGroupChats)
+			{
+				group.IsPinned = pinnedGroup.Contains(group.Id);
+				group.IsMuted = mutedGroup.Contains(group.Id);
+			}
 		}
 
 		List<ChatItemModel> _allChats = new List<ChatItemModel>();
@@ -52,8 +163,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 		// Динамический текст для плейсхолдера поиска
 		public string SearchPlaceholder => IsPersonalMode
-			? "ФИО студента или преподавателя"
-			: "Название предмета";
+			? CrossLocalization.Translate("chat_search_contacts_placeholder")
+			: CrossLocalization.Translate("chat_search_subjects_placeholder");
 
 		bool _isPersonalMode;
 		public bool IsPersonalMode
@@ -137,7 +248,12 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 		async Task update(bool showDialog)
 		{
-			if (showDialog)
+			// Cached lists first: the tab opens instantly (and works offline),
+			// the network result replaces them.
+			var hasCachedData = showCachedLists();
+			var isDialogShown = showDialog && !hasCachedData;
+
+			if (isDialogShown)
 			{
 				_services.Dialogs.ShowLoading();
 			}
@@ -146,67 +262,120 @@ namespace EduCATS.Pages.Chat.ViewModels
 				IsLoading = true;
 			}
 
-			if (IsPersonalMode)
+			try
 			{
-				var chats = await ChatApiService.GetChats(AppUserData.UserId);
+				bool isError;
 
-				if (ChatApiService.IsError)
+				if (IsPersonalMode)
+				{
+					var chats = await ChatApiService.GetChats(AppUserData.UserId);
+					isError = ChatApiService.IsError;
+
+					if (!isError)
+					{
+						_allChats = chats;
+						ChatOfflineCache.SaveChats(chats);
+						ChatPresenceService.Seed(_allChats);
+						ChatUnreadService.SetPersonal(_allChats);
+					}
+				}
+				else
+				{
+					var subjects = await ChatApiService.GetGroups(AppUserData.UserId, ChatRoles.Current(_services));
+					isError = ChatApiService.IsError;
+
+					if (!isError)
+					{
+						_allGroupChats = flatten(subjects);
+						ChatOfflineCache.SaveGroups(subjects);
+						ChatUnreadService.SetGroups(_allGroupChats);
+					}
+				}
+
+				// Offline: the "no connection" banner is shown and cached chats stay.
+				if (isError && _services.Device.CheckConnectivity())
 				{
 					_services.Dialogs.ShowError(CrossLocalization.Translate("base_connection_error"));
 				}
 
-				_allChats = chats ?? new List<ChatItemModel>();
+				syncWithServices();
+				applyFilter();
 			}
-			else
+			catch (Exception ex)
 			{
-				var role = ChatHubService.CurrentRole ?? getFallbackRole();
-				var subjects = await ChatApiService.GetGroups(AppUserData.UserId, role);
-
-				if (ChatApiService.IsError)
+				AppLogs.Log(ex);
+			}
+			finally
+			{
+				if (isDialogShown)
 				{
-					_services.Dialogs.ShowError(CrossLocalization.Translate("base_connection_error"));
+					_services.Dialogs.HideLoading();
 				}
-
-				_allGroupChats = flatten(subjects);
+				else
+				{
+					IsLoading = false;
+				}
 			}
+		}
 
-			applyFilter();
-
-			if (showDialog)
+		/// <summary>
+		/// Show chats saved on the device if nothing is shown yet.
+		/// </summary>
+		/// <returns><c>true</c> if cached chats are shown.</returns>
+		bool showCachedLists()
+		{
+			if (IsPersonalMode && _allChats.Count == 0)
 			{
-				_services.Dialogs.HideLoading();
+				var cachedChats = ChatOfflineCache.LoadChats();
+
+				if (cachedChats?.Count > 0)
+				{
+					_allChats = cachedChats;
+				}
 			}
-			else
+			else if (!IsPersonalMode && _allGroupChats.Count == 0)
 			{
-				IsLoading = false;
+				var cachedGroups = ChatOfflineCache.LoadGroups();
+
+				if (cachedGroups?.Count > 0)
+				{
+					_allGroupChats = flatten(cachedGroups);
+				}
 			}
+
+			var hasData = IsPersonalMode ? _allChats.Count > 0 : _allGroupChats.Count > 0;
+
+			if (hasData)
+			{
+				syncWithServices();
+				applyFilter();
+			}
+
+			return hasData;
 		}
 
 		void applyFilter()
 		{
 			var query = SearchText?.Trim();
 
-			Chats = string.IsNullOrEmpty(query)
+			// Pinned chats first, the server order otherwise (stable sort).
+			Chats = (string.IsNullOrEmpty(query)
 				? _allChats
 				: _allChats
 					.Where(c => !string.IsNullOrEmpty(c.Name) &&
-						c.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
-					.ToList();
+						c.Name.Contains(query, StringComparison.OrdinalIgnoreCase)))
+				.OrderByDescending(c => c.IsPinned)
+				.ToList();
 
 			// ИСПРАВЛЕНИЕ: Добавлен поиск по SubjectName (названию предмета)
-			GroupChats = string.IsNullOrEmpty(query)
+			GroupChats = (string.IsNullOrEmpty(query)
 				? _allGroupChats
 				: _allGroupChats
 					.Where(g =>
 						(!string.IsNullOrEmpty(g.SubjectName) && g.SubjectName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
-						(!string.IsNullOrEmpty(g.DisplayName) && g.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)))
-					.ToList();
-		}
-
-		string getFallbackRole()
-		{
-			var isProfessor = string.IsNullOrEmpty(_services.Preferences.GroupName);
-			return isProfessor ? "lector" : "student";
+						(!string.IsNullOrEmpty(g.DisplayName) && g.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase))))
+				.OrderByDescending(g => g.IsPinned)
+				.ToList();
 		}
 
 		List<GroupChatModel> flatten(List<SubjectChatsModel> subjects)
@@ -233,7 +402,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			}
 
 			SelectedItem = null;
-			_ = _services.Navigation.OpenConversation(chat.Id, chat.Name);
+			_ = _services.Navigation.OpenConversation(chat.Id, chat.Name, chat.UserId);
 		}
 
 		void openGroupChat(object selectedObject)
@@ -244,8 +413,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 			}
 
 			SelectedGroupItem = null;
-			var role = ChatHubService.CurrentRole ?? getFallbackRole();
-			_ = _services.Navigation.OpenGroupConversation(group.Id, group.GroupId, role, group.DisplayName);
+			_ = _services.Navigation.OpenGroupConversation(
+				group.Id, group.GroupId, ChatRoles.Current(_services), group.DisplayName);
 		}
 	}
 }

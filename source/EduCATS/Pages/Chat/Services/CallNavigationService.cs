@@ -50,7 +50,7 @@ namespace EduCATS.Pages.Chat.Services
 						var callPage =
 							new CallPage(
 								chatId,
-								"Входящий звонок");
+								Nyxbull.Plugins.CrossLocalization.CrossLocalization.Translate("chat_incoming_call"));
 
 
 						await currentPage.Navigation.PushModalAsync(
@@ -60,8 +60,7 @@ namespace EduCATS.Pages.Chat.Services
 			catch (
 				Exception ex)
 			{
-				System.Diagnostics.Debug.WriteLine(
-					$"Incoming call navigation error: {ex}");
+				EduCATS.Helpers.Logs.AppLogs.Log(ex);
 			}
 		}
 

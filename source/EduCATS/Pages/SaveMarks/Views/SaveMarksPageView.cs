@@ -31,7 +31,7 @@ namespace EduCATS.Pages.SaveMarks.Views
 			Padding = _padding;
 			NavigationPage.SetHasNavigationBar(this, false);
 			BindingContext = new SaveMarksPageViewModel(
-				new PlatformServices(), subjectId, groupId, title);
+				PlatformServices.Current, subjectId, groupId, title);
 			createView();
 		}
 
@@ -45,76 +45,40 @@ namespace EduCATS.Pages.SaveMarks.Views
 				Text = CrossLocalization.Translate("choose_group") + " " + _groupName,
 				HorizontalOptions = LayoutOptions.Center,
 			};
-			var stackLayout = new StackLayout();
-			var resultsListView = new RoundedListView(typeof(VisitingPageViewCell));
-			var resultsListViewSubGroup = new RoundedListView(typeof(VisitingPageViewCell));
 			var saveDate = stackView();
+
+			// The controls are the list header: the list needs a finite height
+			// to scroll (it couldn't inside a StackLayout), the header scrolls with it.
 			if (_title == CrossLocalization.Translate("stats_page_lectures_visiting"))
 			{
-				var dateforLectures = dateLecturesPicker();
-				resultsListView = new RoundedListView(typeof(VisitingPageViewCell))
-				{
-					IsPullToRefreshEnabled = false,
-				};
-				resultsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "LecturesMarks");
-				stackLayout = new StackLayout
-				{
-					VerticalOptions = LayoutOptions.Center,
-					Padding = _headerPadding,
-					Children =
-					{
-						saveDate,
-						group,
-						dateforLectures,
-						resultsListView,
-					}
-				};
+				Content = createMarksList("LecturesMarks", saveDate, group, dateLecturesPicker());
 			}
 			else if (_title == CrossLocalization.Translate("stats_page_labs_visiting"))
 			{
-				var dateforLabs = dateLabsPicker();
-				var subGroupLabsVisiting = subGroupPicker();
-				resultsListViewSubGroup = new RoundedListView(typeof(VisitingPageViewCell))
-				{
-					IsPullToRefreshEnabled = false,
-				};
-				resultsListViewSubGroup.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "LabsVisitingMarksSubGroup");
-				stackLayout = new StackLayout
-				{
-					VerticalOptions = LayoutOptions.Center,
-					Padding = _headerPadding,
-					Children =
-					{
-						saveDate,
-						group,
-						subGroupLabsVisiting,
-						dateforLabs,
-						resultsListViewSubGroup,
-					}
-				};
+				Content = createMarksList("LabsVisitingMarksSubGroup", saveDate, group, subGroupPicker(), dateLabsPicker());
 			}
-			else if (_title == CrossLocalization.Translate("practiÒe_visiting"))
+			else if (_title == CrossLocalization.Translate("practi—Åe_visiting"))
 			{
-				var dateforPractice = datePractPicker();
-				resultsListView = new RoundedListView(typeof(VisitingPageViewCell))
-				{
-					IsPullToRefreshEnabled = false,
-				};
-				resultsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "LecturesMarks");
-				stackLayout = new StackLayout
-				{
-					VerticalOptions = LayoutOptions.Center,
-					Padding = _headerPadding,
-					Children =
-					{
-						saveDate,
-						group,
-						dateforPractice,
-						resultsListView,
-					}
-				};
+				Content = createMarksList("LecturesMarks", saveDate, group, datePractPicker());
 			}
-			Content = stackLayout;
+		}
+
+		RoundedListView createMarksList(string itemsSourcePath, params View[] headerViews)
+		{
+			var header = new StackLayout { Padding = _headerPadding };
+
+			foreach (var view in headerViews)
+			{
+				header.Children.Add(view);
+			}
+
+			var list = new RoundedListView(typeof(VisitingPageViewCell), header: header)
+			{
+				IsPullToRefreshEnabled = false
+			};
+
+			list.SetBinding(RoundedListView.ItemsSourceProperty, itemsSourcePath);
+			return list;
 		}
 
 		StackLayout stackView()

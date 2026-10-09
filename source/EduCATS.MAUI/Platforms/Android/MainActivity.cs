@@ -16,12 +16,5 @@ namespace EduCATS.MAUI
 							   | ConfigChanges.Density)]
 	public class MainActivity : MauiAppCompatActivity
 	{
-		protected override void OnCreate(Bundle savedInstanceState)
-		{
-			base.OnCreate(savedInstanceState);
-
-			System.Net.ServicePointManager.ServerCertificateValidationCallback =
-				(sender, cert, chain, errors) => true;
-		}
 	}
 }

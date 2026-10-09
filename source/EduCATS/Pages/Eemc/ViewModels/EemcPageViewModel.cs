@@ -79,7 +79,7 @@ namespace EduCATS.Pages.Eemc.ViewModels
 			_searchId = searchId;
 			_previousConcepts = new Stack<ConceptModel>();
 
-			Task.Run(async () => await update());
+			RunOnMainThread(PlatformServices, update);
 			SubjectChanged += async (id, name) => await update();
 		}
 
@@ -127,7 +127,7 @@ namespace EduCATS.Pages.Eemc.ViewModels
 			set
 			{
 				SetProperty(ref _selectedItem, value);
-				Task.Run(async () => await openConcepts(_selectedItem));
+				{ var selected = _selectedItem; RunOnMainThread(PlatformServices, () => openConcepts(selected)); }
 			}
 		}
 
@@ -195,12 +195,12 @@ namespace EduCATS.Pages.Eemc.ViewModels
 			var subjectId = CurrentSubject.Id.ToString();
 			var root = await DataAccess.GetRootConcepts(userId, subjectId);
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (root.IsError && !root.IsConnectionError)
 			{
-				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+				PlatformServices.Dialogs.ShowError(root.ErrorMessage);
 			}
 
-			var rootConcepts = root?.Concepts;
+			var rootConcepts = root.Data?.Concepts;
 
 			if (rootConcepts != null)
 			{
@@ -296,12 +296,17 @@ namespace EduCATS.Pages.Eemc.ViewModels
 		async Task setConceptsFromRoot(int id)
 		{
 			ConceptModel conceptTree = null;
-			ConceptModelTest conceptCascade = await DataAccess.GetConceptCascade(id);
-			conceptTree = JsonConvert.DeserializeObject<ConceptModel>(conceptCascade.Concept.ToString());
+			var conceptCascade = await DataAccess.GetConceptCascade(id);
+			var concept = conceptCascade.Data?.Concept;
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (concept != null)
 			{
-				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+				conceptTree = JsonConvert.DeserializeObject<ConceptModel>(concept.ToString());
+			}
+
+			if (conceptCascade.IsError && !conceptCascade.IsConnectionError)
+			{
+				PlatformServices.Dialogs.ShowError(conceptCascade.ErrorMessage);
 			}
 
 			var concepts = conceptTree?.Children;

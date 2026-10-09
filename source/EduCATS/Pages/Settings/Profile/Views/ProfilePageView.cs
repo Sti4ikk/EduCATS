@@ -34,7 +34,7 @@ namespace EduCATS.Pages.Settings.Profile.Views
 			NavigationPage.SetHasNavigationBar(this, false);
 			Padding = _padding;
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new ProfilePageViewModel(new PlatformServices());
+			BindingContext = new ProfilePageViewModel(PlatformServices.Current);
 			createViews();
 		}
 

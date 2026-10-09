@@ -32,7 +32,7 @@ namespace EduCATS.Pages.Statistics.Students.Views
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			Padding = _padding;
-			var studentsPageViewModel = new StudentsPageViewModel(new PlatformServices(), subjectId, students, pageIndex);
+			var studentsPageViewModel = new StudentsPageViewModel(PlatformServices.Current, subjectId, students, pageIndex);
 			studentsPageViewModel.Init();
 			BindingContext = studentsPageViewModel;
 			createViews();
@@ -111,11 +111,11 @@ namespace EduCATS.Pages.Statistics.Students.Views
 				IsPullToRefreshEnabled = true
 			};
 
-			roundedListView.ItemTapped += (sender, e) => ((ListView)sender).SelectedItem = null;
-			roundedListView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			roundedListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
-			roundedListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			roundedListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Students");
+			roundedListView.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
+			roundedListView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			roundedListView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
+			roundedListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
+			roundedListView.SetBinding(RoundedListView.ItemsSourceProperty, "Students");
 			return roundedListView;
 		}
 	}

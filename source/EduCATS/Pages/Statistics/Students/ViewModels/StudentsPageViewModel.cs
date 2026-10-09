@@ -37,7 +37,7 @@ namespace EduCATS.Pages.Statistics.Students.ViewModels
 		{
 			setStudents(_studentsList);
 
-			Task.Run(async () => {
+			RunOnMainThread(_service, async () => {
 				if (_studentsList == null || _studentsList.Count == 0)
 				{
 					await update();
@@ -171,11 +171,11 @@ namespace EduCATS.Pages.Statistics.Students.ViewModels
 
 			var statisticsModel = await DataAccess.GetStudentsStatistics(SubjectId, CurrentGroup.GroupId);
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError) {
-				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+			if (statisticsModel.IsError && !statisticsModel.IsConnectionError) {
+				PlatformServices.Dialogs.ShowError(statisticsModel.ErrorMessage);
 			}
 
-			return statisticsModel?.Students?.ToList();
+			return statisticsModel.Data?.Students?.ToList();
 		}
 
 		void search(string text)
@@ -225,7 +225,7 @@ namespace EduCATS.Pages.Statistics.Students.ViewModels
 				StatsPageEnum.LabsRating => CrossLocalization.Translate("stats_page_labs_rating"),
 				StatsPageEnum.LabsVisiting => CrossLocalization.Translate("stats_page_labs_visiting"),
 				StatsPageEnum.LecturesVisiting => CrossLocalization.Translate("stats_page_lectures_visiting"),
-				StatsPageEnum.PractiseVisiting => CrossLocalization.Translate("practiñe_visiting"),
+				StatsPageEnum.PractiseVisiting => CrossLocalization.Translate("practiÑe_visiting"),
 				_ => CrossLocalization.Translate("practice_mark")
 			};
 		}

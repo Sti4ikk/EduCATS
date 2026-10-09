@@ -1,5 +1,3 @@
-using EduCATS.Controls.RoundedListView.Enums;
-using EduCATS.Controls.RoundedListView.Interfaces;
 using Newtonsoft.Json;
 using System;
 
@@ -17,11 +15,11 @@ namespace EduCATS.Pages.Chat.Models
 	/// via a quick DevTools check on the real response if any field
 	/// comes back empty/null.
 	/// </remarks>
-	public class ChatItemModel : IRoundedListType // 1. Добавили интерфейс
+	public class ChatItemModel : ChatListItemModel
 	{
-		[JsonProperty("id")]
-		public int Id { get; set; }
-
+		/// <summary>
+		/// Id of the other participant.
+		/// </summary>
 		[JsonProperty("userId")]
 		public int UserId { get; set; }
 
@@ -35,22 +33,31 @@ namespace EduCATS.Pages.Chat.Models
 		[JsonProperty("img")]
 		public string Img { get; set; }
 
-		[JsonProperty("unread")]
-		public int Unread { get; set; }
+		bool? _isOnline;
 
+		/// <summary>
+		/// Is the other participant online (updated live by the "Status" hub event).
+		/// </summary>
 		[JsonProperty("isOnline")]
-		public bool? IsOnline { get; set; }
+		public bool? IsOnline
+		{
+			get => _isOnline;
+			set
+			{
+				if (SetProperty(ref _isOnline, value))
+				{
+					OnPropertyChanged(nameof(IsOnlineVisible));
+				}
+			}
+		}
+
+		[JsonIgnore]
+		public bool IsOnlineVisible => IsOnline == true;
 
 		[JsonProperty("lastMessageDate")] // Замените на реальное название ключа из вашего API
 		public DateTime? LastMessageDate { get; set; }
 
-		/// <summary>
-		/// 2. Реализация метода интерфейса IRoundedListType.
-		/// Указывает RoundedListView использовать шаблон навигации (кликов) для этой строки.
-		/// </summary>
-		public RoundedListTypeEnum GetListType()
-		{
-			return RoundedListTypeEnum.Navigation;
-		}
+		[JsonIgnore]
+		public override bool IsGroupChat => false;
 	}
 }

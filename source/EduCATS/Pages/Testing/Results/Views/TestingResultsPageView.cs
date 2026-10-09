@@ -1,3 +1,4 @@
+using EduCATS.Controls.RoundedListView;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Pages.Testing.Results.ViewModels;
@@ -23,7 +24,7 @@ namespace EduCATS.Pages.Testing.Results.Views
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			Title = CrossLocalization.Translate("test_results_title");
 			BindingContext = new TestingResultsPageViewModel(
-				testId, fromComplexLearning, new PlatformServices());
+				testId, fromComplexLearning, PlatformServices.Current);
 			createToolbar();
 			createViews();
 		}
@@ -43,7 +44,7 @@ namespace EduCATS.Pages.Testing.Results.Views
 			Content = createList();
 		}
 
-		ListView createList()
+		CollectionView createList()
 		{
 			var markTitleLabel = createRatingTitleLabel();
 			var markLabel = createRatingLabel();
@@ -60,16 +61,14 @@ namespace EduCATS.Pages.Testing.Results.Views
 				headerView.Children.Add(createTimePassedLabel());
 			}
 
-			var listView = new ListView {
+			var listView = new CollectionView {
 				Header = headerView,
-				HasUnevenRows = true,
-				SelectionMode = ListViewSelectionMode.None,
-				SeparatorVisibility = SeparatorVisibility.None,
-				ItemTemplate = new DataTemplate(typeof(TestingResultsViewCell)),
+				SelectionMode = SelectionMode.None,
+				ItemTemplate = CellTemplates.FromCell(typeof(TestingResultsViewCell)),
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor)
 			};
 
-			listView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Results");
+			listView.SetBinding(ItemsView.ItemsSourceProperty, "Results");
 			return listView;
 		}
 

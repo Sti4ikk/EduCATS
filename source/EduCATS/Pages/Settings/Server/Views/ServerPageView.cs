@@ -21,7 +21,7 @@ namespace EduCATS.Pages.Settings.Server.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new ServerPageViewModel(new PlatformServices());
+			BindingContext = new ServerPageViewModel(PlatformServices.Current);
 			createViews();
 		}
 
@@ -49,8 +49,8 @@ namespace EduCATS.Pages.Settings.Server.Views
 				Margin = _listMargin
 			};
 
-			serverListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "ServerList");
-			serverListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			serverListView.SetBinding(RoundedListView.ItemsSourceProperty, "ServerList");
+			serverListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
 			return serverListView;
 		}
 	}

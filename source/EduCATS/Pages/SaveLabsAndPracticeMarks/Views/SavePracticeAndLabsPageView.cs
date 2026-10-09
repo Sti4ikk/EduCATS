@@ -32,7 +32,7 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.ViewModels
 			Padding = _padding;
 			NavigationPage.SetHasNavigationBar(this, false);
 			BindingContext = new SavePracticeAndLabsPageViewModel(
-				new PlatformServices(), subjectId, groupId, title);
+				PlatformServices.Current, subjectId, groupId, title);
 
 			if (_title == CrossLocalization.Translate("practice_mark"))
 			{
@@ -56,29 +56,23 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.ViewModels
 				HorizontalOptions = LayoutOptions.Center,
 			};
 
-			var stackLayout = new StackLayout();
-			var resultsListViewSubGroup = new RoundedListView(typeof(StudentsPageViewCell));
-			var subGroup = subGroupPicker();
-			resultsListViewSubGroup = new RoundedListView(typeof(StudentsPageViewCell))
+			// The group label and the sub-group picker are the list header:
+			// the list needs a finite height to scroll (it couldn't inside a StackLayout).
+			var header = new StackLayout
+			{
+				Padding = _headerPadding,
+				Children = { group, subGroupPicker() }
+			};
+
+			var resultsListViewSubGroup = new RoundedListView(typeof(StudentsPageViewCell), header: header)
 			{
 				IsPullToRefreshEnabled = false,
 			};
 			resultsListViewSubGroup.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
 			resultsListViewSubGroup.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
-			resultsListViewSubGroup.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "LabsVisitingMarksSubGroup");
-			stackLayout = new StackLayout
-			{
-				VerticalOptions = LayoutOptions.Center,
-				Padding = _headerPadding,
-				Children =
-				{
-						group,
-						subGroup,
-						resultsListViewSubGroup,
-				}
-			};
+			resultsListViewSubGroup.SetBinding(RoundedListView.ItemsSourceProperty, "LabsVisitingMarksSubGroup");
 
-			Content = stackLayout;
+			Content = resultsListViewSubGroup;
 		}
 
 		void createViews()
@@ -107,7 +101,7 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.ViewModels
 			};
 			roundedListView.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
 			roundedListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
-			roundedListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Students");
+			roundedListView.SetBinding(RoundedListView.ItemsSourceProperty, "Students");
 			return roundedListView;
 		}
 	}

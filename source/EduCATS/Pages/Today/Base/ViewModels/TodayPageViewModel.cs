@@ -1,3 +1,4 @@
+using EduCATS.Configuration;
 using EduCATS.Data;
 using EduCATS.Data.Models;
 using EduCATS.Data.Models.Calendar;
@@ -30,14 +31,8 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 	{
 		readonly IPlatformServices _services;
 
-		readonly double _subjectHeight;
-		readonly double _subjectsHeightToSubtract;
-		readonly bool _isLargeFont;
-
 		const int _minimumCalendarPosition = 0;
 		const int _maximumCalendarPosition = 2;
-		const double _emptySubjectsHeight = 120;
-		const double _emptySubjectsHeightLarge = 130;
 		const int _consultationsCount = 1000;
 		const int _consultationsPage = 1;
 		const string _scheduleQueryDateFormat = "dd-MM-yyyy";
@@ -58,25 +53,35 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			"H:mm:ss"
 		};
 
-		// bool _isCreation = true;
 		bool _isManualSelectedCalendarDay;
 		DateTime _manualSelectedCalendarDay;
-		List<CalendarSubjectsModel> _calendarSubjectsBackup;
 		readonly ConcurrentDictionary<int, string> _lecturerNamesCache = new ConcurrentDictionary<int, string>();
 
-		public TodayPageViewModel(double subjectHeight, double subjectsHeaderHeight, IPlatformServices services)
+		/// <summary>
+		/// Schedule by week start: tapping days of the same week
+		/// doesn't download the week again. Cleared on refresh.
+		/// </summary>
+		readonly ConcurrentDictionary<DateTime, Task<List<Schedule>>> _weekScheduleCache =
+			new ConcurrentDictionary<DateTime, Task<List<Schedule>>>();
+
+		/// <summary>
+		/// Course and diploma project consultations (all dates). Cleared on refresh.
+		/// </summary>
+		Task<(CourseProjectConsultationModel Course, DiplomProjectConsultationModel Diploma)> _consultationsCache;
+
+		/// <summary>
+		/// Number of the latest day selection: results of older ones are dropped.
+		/// </summary>
+		int _subjectsRequestVersion;
+
+		public TodayPageViewModel(IPlatformServices services)
 		{
-			_subjectHeight = services.Preferences.IsLargeFont ? (subjectHeight + 90) : subjectHeight;
-			_subjectsHeightToSubtract = services.Preferences.IsLargeFont ? 95 : 85;
-			_isLargeFont = services.Preferences.IsLargeFont;
 			_services = services;
 			Version = _services.Device.GetVersion();
 
 			initSetup();
 			update();
 
-			System.Diagnostics.Debug.WriteLine($"=== TODAY VM: CalendarList={CalendarList?.Count}");
-			System.Diagnostics.Debug.WriteLine($"=== TODAY VM: NewsList={NewsList?.Count}");
 		}
 
 		int _calendarPosition;
@@ -112,20 +117,6 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 		{
 			get { return _newsSubjectList; }
 			set { SetProperty(ref _newsSubjectList, value); }
-		}
-
-		List<CalendarSubjectsModel> _calendarSubjects;
-		public List<CalendarSubjectsModel> CalendarSubjects
-		{
-			get { return _calendarSubjects; }
-			set { SetProperty(ref _calendarSubjects, value); }
-		}
-
-		double _calendarSubjectsHeight;
-		public double CalendarSubjectsHeight
-		{
-			get { return _calendarSubjectsHeight; }
-			set { SetProperty(ref _calendarSubjectsHeight, value); }
 		}
 
 		string _month;
@@ -202,12 +193,10 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			try
 			{
 				_manualSelectedCalendarDay = new DateTime();
-				CalendarSubjects = new List<CalendarSubjectsModel>();
 				NewsSubjectList = new List<SubjectPageModel>();
 				CalendarDaysOfWeekList = new ObservableCollection<string>(DateHelper.GetDaysWithFirstLetters());
 				setInitialCalendarState();
 				NewsList = new List<NewsPageModel>();
-				_calendarSubjectsBackup = new List<CalendarSubjectsModel>();
 			}
 			catch (Exception ex)
 			{
@@ -236,16 +225,53 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 				try
 				{
 					IsNewsRefreshing = true;
-					await getAndSetCalendarNotes();
-					await getAndSetNews();
-					await getUpdateMessage();
-					IsNewsRefreshing = false;
+
+					// Refresh means fresh data: drop cached schedule and consultations.
+					_weekScheduleCache.Clear();
+					_consultationsCache = null;
+
+					await Task.WhenAll(getAndSetCalendarNotes(), getAndSetNews());
 				}
 				catch (Exception ex)
 				{
 					AppLogs.Log(ex);
 				}
+				finally
+				{
+					IsNewsRefreshing = false;
+				}
+
+				await checkForUpdateOnce();
 			});
+		}
+
+		/// <summary>
+		/// Is store version already checked during this app session.
+		/// </summary>
+		/// <remarks>
+		/// Static so that pull-to-refresh or re-creating the page
+		/// doesn't show the update dialog again.
+		/// </remarks>
+		static bool _isUpdateChecked;
+
+		async Task checkForUpdateOnce()
+		{
+			if (_isUpdateChecked)
+			{
+				return;
+			}
+
+			_isUpdateChecked = true;
+
+			try
+			{
+				await getUpdateMessage();
+			}
+			catch (Exception ex)
+			{
+				// Store page unavailable (no network, markup changed, etc.) - not critical.
+				AppLogs.Log(ex);
+			}
 		}
 
 		async Task getAndSetCalendarNotes()
@@ -276,14 +302,16 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 		async Task getUpdateMessage()
 		{
 			string version = await Task.Run(() => AppServices.GerVersionStore());
-			string[] a = version.Split('.');
-			string[] b = _version.Split('.');
 
-			// ��������� ������
-			if ((Convert.ToInt32(a[0]) > Convert.ToInt32(b[0])) ||
-				(Convert.ToInt32(a[1]) > Convert.ToInt32(b[1]) && Convert.ToInt32(a[0]) == Convert.ToInt32(b[0])) ||
-				(Convert.ToInt32(a[2]) > Convert.ToInt32(b[2]) && Convert.ToInt32(a[0]) == Convert.ToInt32(b[0]) &&
-				 Convert.ToInt32(a[1]) == Convert.ToInt32(b[1])))
+			var storeVersion = parseVersion(version);
+			var currentVersion = parseVersion(_version);
+
+			if (storeVersion == null || currentVersion == null)
+			{
+				return;
+			}
+
+			if (storeVersion > currentVersion)
 			{
 				string title = CrossLocalization.Translate("update_title");
 				string message = CrossLocalization.Translate("update_message");
@@ -311,28 +339,48 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			}
 		}
 
-		async Task<List<NewsPageModel>> getNews()
+		/// <summary>
+		/// Parse version with missing parts treated as <c>0</c>
+		/// (so that <c>1.2</c> equals <c>1.2.0</c>).
+		/// </summary>
+		/// <param name="rawVersion">Version string.</param>
+		/// <returns>Version, or <c>null</c> if it can't be parsed.</returns>
+		static System.Version parseVersion(string rawVersion)
 		{
-			var userLogin = _services.Preferences.UserLogin;
-			var news = await Task.Run(() => DataAccess.GetNews(userLogin));
-
-			if (DataAccess.IsError && DataAccess.IsSessionExpiredError)
+			if (!System.Version.TryParse(rawVersion?.Trim(), out var version))
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
-				AppDemo.Instance.IsDemoAccount = false;
-				_services.Preferences.ResetPrefs();
-				AppUserData.Clear();
-				DataAccess.ResetData();
-				_services.Navigation.OpenLogin();
 				return null;
 			}
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			return new System.Version(
+				version.Major,
+				version.Minor,
+				Math.Max(version.Build, 0),
+				Math.Max(version.Revision, 0));
+		}
+
+		async Task<List<NewsPageModel>> getNews()
+		{
+			var userLogin = _services.Preferences.UserLogin;
+
+			// Subjects (for news colors) are loaded in parallel with the news.
+			var subjectsTask = getSubjects();
+			var newsResult = await Task.Run(() => DataAccess.GetNews(userLogin));
+			var news = newsResult.Data;
+
+			if (newsResult.IsError && newsResult.IsSessionExpiredError)
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+				_services.Dialogs.ShowError(newsResult.ErrorMessage);
+				AppSession.Logout(_services);
+				return null;
 			}
 
-			var subjectList = await getSubjects();
+			if (newsResult.IsError && !newsResult.IsConnectionError)
+			{
+				_services.Dialogs.ShowError(newsResult.ErrorMessage);
+			}
+
+			var subjectList = await subjectsTask;
 
 			if (subjectList == null)
 			{
@@ -345,7 +393,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 		async Task<IList<SubjectModel>> getSubjects()
 		{
 			var userLogin = _services.Preferences.UserLogin;
-			return await Task.Run(() => DataAccess.GetProfileInfoSubjects(userLogin));
+			return (await Task.Run(() => DataAccess.GetProfileInfoSubjects(userLogin))).Data;
 		}
 
 		List<NewsPageModel> composeNewsWithSubjects(IList<NewsModel> news, IList<SubjectModel> subjects)
@@ -569,6 +617,8 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 
 		async Task setNewSubjectList(DateTime dateTime)
 		{
+			var requestVersion = ++_subjectsRequestVersion;
+
 			try
 			{
 				var selectedDate = dateTime.Date;
@@ -588,42 +638,77 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 						.ToList();
 				});
 
+				// The user picked another day while this one was loading.
+				if (requestVersion != _subjectsRequestVersion)
+				{
+					return;
+				}
+
 				NewsSubjectList = mergedItems;
-				setupNewsSubjectsHeight();
 			}
 			catch (Exception ex)
 			{
 				AppLogs.Log(ex);
-				NewsSubjectList = new List<SubjectPageModel>();
-				setupNewsSubjectsHeight();
+
+				if (requestVersion == _subjectsRequestVersion)
+				{
+					NewsSubjectList = new List<SubjectPageModel>();
+				}
 			}
 		}
 
 		async Task<List<Schedule>> getScheduleItemsForDate(DateTime selectedDate)
 		{
-			var weekStartDate = DateHelper.GetWeekStartDate(selectedDate, WeekEnum.Current);
-			var weekEndDate = weekStartDate.AddDays(6);
-
-			var dateStart = weekStartDate.ToString(_scheduleQueryDateFormat, CultureInfo.InvariantCulture);
-			var dateEnd = weekEndDate.ToString(_scheduleQueryDateFormat, CultureInfo.InvariantCulture);
-
-			var subjects = await DataAccess.GetSchedule(dateStart, dateEnd);
-			var schedule = subjects?.Schedule ?? new List<Schedule>();
+			var weekStartDate = DateHelper.GetWeekStartDate(selectedDate, WeekEnum.Current).Date;
+			var schedule = await _weekScheduleCache.GetOrAdd(weekStartDate, loadWeekSchedule);
 
 			return schedule
 				.Where(item => isDateForSelectedDay(item.Date, selectedDate))
 				.ToList();
 		}
 
-		async Task<List<Schedule>> getConsultationItemsForDate(DateTime selectedDate)
+		async Task<List<Schedule>> loadWeekSchedule(DateTime weekStartDate)
+		{
+			var weekEndDate = weekStartDate.AddDays(6);
+
+			var dateStart = weekStartDate.ToString(_scheduleQueryDateFormat, CultureInfo.InvariantCulture);
+			var dateEnd = weekEndDate.ToString(_scheduleQueryDateFormat, CultureInfo.InvariantCulture);
+
+			var result = await DataAccess.GetSchedule(dateStart, dateEnd);
+
+			// Don't keep a failed request: the next tap retries.
+			if (result.IsError)
+			{
+				_weekScheduleCache.TryRemove(weekStartDate, out _);
+			}
+
+			return result.Data?.Schedule ?? new List<Schedule>();
+		}
+
+		async Task<(CourseProjectConsultationModel Course, DiplomProjectConsultationModel Diploma)> loadConsultations()
 		{
 			var courseConsultationsTask =
 				DataAccess.GetCourseProjectConsultation(_consultationsCount, _consultationsPage);
 			var diplomaConsultationsTask =
 				DataAccess.GetDiplomProjectConsultation(_consultationsCount, _consultationsPage);
 
-			var courseConsultations = await courseConsultationsTask;
-			var diplomaConsultations = await diplomaConsultationsTask;
+			var course = await courseConsultationsTask;
+			var diploma = await diplomaConsultationsTask;
+
+			// Don't keep a failed request: the next tap retries.
+			if (course.IsError || diploma.IsError)
+			{
+				_consultationsCache = null;
+			}
+
+			return (course.Data, diploma.Data);
+		}
+
+		async Task<List<Schedule>> getConsultationItemsForDate(DateTime selectedDate)
+		{
+			var consultations = await (_consultationsCache ??= loadConsultations());
+			var courseConsultations = consultations.Course;
+			var diplomaConsultations = consultations.Diploma;
 
 			var result = mapCourseProjectConsultations(courseConsultations, selectedDate);
 
@@ -729,7 +814,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			var profileTasks = missingIds.Select(async id => new
 			{
 				Id = id,
-				Profile = await DataAccess.GetProfileInfoById(id)
+				Profile = (await DataAccess.GetProfileInfoById(id)).Data
 			});
 
 			var profiles = await Task.WhenAll(profileTasks);
@@ -822,62 +907,5 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			return int.MaxValue;
 		}
 
-
-		void setFilteredSubjectsList()
-		{
-			var filteredList = new List<CalendarSubjectsModel>();
-
-			if (_isManualSelectedCalendarDay)
-			{
-				filteredList = _calendarSubjectsBackup.Where(
-					x => x.Date.ToShortDateString() == _manualSelectedCalendarDay.ToShortDateString()).ToList();
-			}
-			else
-			{
-				filteredList = _calendarSubjectsBackup.Where(
-					x => x.Date.ToShortDateString() == DateTime.Today.ToShortDateString()).ToList();
-			}
-
-			CalendarSubjects = new List<CalendarSubjectsModel>(filteredList);
-			setupSubjectsHeight();
-		}
-
-		void setupSubjectsHeight()
-		{
-			try
-			{
-				if (CalendarSubjects.Count == 0)
-				{
-					CalendarSubjectsHeight = _emptySubjectsHeight;
-					return;
-				}
-
-				CalendarSubjectsHeight =
-					_subjectHeight * CalendarSubjects.Count;
-			}
-			catch (Exception ex)
-			{
-				AppLogs.Log(ex);
-			}
-		}
-
-		void setupNewsSubjectsHeight()
-		{
-			try
-			{
-				if (NewsSubjectList.Count == 0)
-				{
-					CalendarSubjectsHeight = _isLargeFont ? _emptySubjectsHeightLarge : _emptySubjectsHeight;
-					return;
-				}
-
-				CalendarSubjectsHeight =
-					_subjectHeight * NewsSubjectList.Count - _subjectsHeightToSubtract * (NewsSubjectList.Count - 1);
-			}
-			catch (Exception ex)
-			{
-				AppLogs.Log(ex);
-			}
-		}
 	}
 }

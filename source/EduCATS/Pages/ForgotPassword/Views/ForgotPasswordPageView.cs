@@ -35,7 +35,7 @@ namespace EduCATS.Pages.ForgotPassword.Views
 		const double _showPasswordIconSize = 30;
 		public ForgotPasswordPageView()
 		{
-			BindingContext = new ForgotPasswordPageViewModel(new PlatformServices());
+			BindingContext = new ForgotPasswordPageViewModel(PlatformServices.Current);
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			createView();

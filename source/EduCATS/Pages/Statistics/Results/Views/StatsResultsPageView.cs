@@ -28,7 +28,7 @@ namespace EduCATS.Pages.Statistics.Results.Views
 			_statsPageEnum = pageType;
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			BindingContext = new StatsResultsPageViewModel(
-				new PlatformServices(), userLogin, subjectId, groupId, pageType, studentName);
+				PlatformServices.Current, userLogin, subjectId, groupId, pageType, studentName);
 			createViews(studentName);
 		}
 
@@ -48,11 +48,11 @@ namespace EduCATS.Pages.Statistics.Results.Views
 				IsPullToRefreshEnabled = true
 			};
 
-			resultsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Marks");
-			resultsListView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			resultsListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
+			resultsListView.SetBinding(RoundedListView.ItemsSourceProperty, "Marks");
+			resultsListView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			resultsListView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
 
-			resultsListView.ItemSelected += (sender, e) => { ((ListView)sender).SelectedItem = null; };
+			resultsListView.ItemSelected += (sender, e) => { ((RoundedListView)sender).SelectedItem = null; };
 
 			Content = resultsListView;
 		}

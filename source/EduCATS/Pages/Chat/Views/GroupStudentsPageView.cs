@@ -3,6 +3,7 @@ using EduCATS.Pages.Chat.ViewModels;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
@@ -18,7 +19,7 @@ namespace EduCATS.Pages.Chat.Views
 
 		public GroupStudentsPageView(int groupId, string subtitle)
 		{
-			_viewModel = new GroupStudentsPageViewModel(new PlatformServices(), groupId, subtitle);
+			_viewModel = new GroupStudentsPageViewModel(PlatformServices.Current, groupId, subtitle);
 			BindingContext = _viewModel;
 
 			BackgroundColor = Color.FromArgb("#66000000");
@@ -31,7 +32,7 @@ namespace EduCATS.Pages.Chat.Views
 		{
 			var titleLabel = new Label
 			{
-				Text = "Список студентов",
+				Text = CrossLocalization.Translate("chat_students_title"),
 				FontSize = 20,
 				FontAttributes = FontAttributes.Bold,
 				TextColor = Colors.Black
@@ -54,6 +55,7 @@ namespace EduCATS.Pages.Chat.Views
 
 			var closeTap = new TapGestureRecognizer();
 			closeTap.Tapped += async (sender, e) => await Navigation.PopModalAsync();
+			SemanticProperties.SetDescription(closeIcon, CrossLocalization.Translate("base_close"));
 			closeIcon.GestureRecognizers.Add(closeTap);
 
 			var titleStack = new VerticalStackLayout
@@ -84,7 +86,7 @@ namespace EduCATS.Pages.Chat.Views
 
 			var emptyLabel = new Label
 			{
-				Text = "В группе пока нет студентов",
+				Text = CrossLocalization.Translate("chat_students_empty"),
 				HorizontalOptions = LayoutOptions.Center,
 				TextColor = Color.FromArgb("#9AA0A6")
 			};
@@ -96,7 +98,7 @@ namespace EduCATS.Pages.Chat.Views
 
 			var closeButton = new Button
 			{
-				Text = "Закрыть",
+				Text = CrossLocalization.Translate("base_close"),
 				BackgroundColor = Color.FromArgb(Theme.Current.BaseAppColor),
 				TextColor = Colors.White,
 				CornerRadius = 8,

@@ -1,3 +1,4 @@
+using EduCATS.Configuration;
 using EduCATS.Data;
 using EduCATS.Data.Models;
 using EduCATS.Data.User;
@@ -215,55 +216,47 @@ namespace EduCATS.Pages.Login.ViewModels
 		/// <summary>
 		/// Is called on login completed.
 		/// </summary>
-		/// <param name="user">User model</param>
+		/// <param name="user">User model with error details.</param>
 		/// <returns>Task.</returns>
-		async Task loginCompleted(UserModel user)
+		async Task loginCompleted(DataResult<UserModel> user)
 		{
 			setLoading(false);
-			if (user != null && !DataAccess.IsError)
+			if (user.IsError)
 			{
-				setLoading(true, CrossLocalization.Translate("login_profile_loading"));
-				var profile = await getProfileData(user.Username);
-				setLoading(false);
-				profileRetrieved(profile);
+				_services.Dialogs.ShowError(user.ErrorMessage);
 			}
-			else if (user != null && DataAccess.IsError)
+			else if (string.IsNullOrWhiteSpace(user.Data?.Username))
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
-			}
-			else if (user != null && string.IsNullOrWhiteSpace(user.Username))
-			{
-				// Ошибка уже показана внутри loginRequest()
-				// поэтому здесь просто ничего не делаем, чтобы не дублировать диалоги
+				_services.Dialogs.ShowError(CrossLocalization.Translate("base_something_went_wrong"));
 			}
 			else
 			{
-				_services.Dialogs.ShowError(CrossLocalization.Translate("base_something_went_wrong"));
+				setLoading(true, CrossLocalization.Translate("login_profile_loading"));
+				var profile = await getProfileData(user.Data.Username);
+				setLoading(false);
+				profileRetrieved(profile);
 			}
 		}
 
 		/// <summary>
 		/// Is called after successful login.
 		/// </summary>
-		/// <param name="profile">Profile model.</param>
-		void profileRetrieved(UserProfileModel profile)
+		/// <param name="profileResult">Profile model with error details.</param>
+		void profileRetrieved(DataResult<UserProfileModel> profileResult)
 		{
-			if (profile != null && !DataAccess.IsError)
+			var profile = profileResult.Data;
+
+			if (profile != null && !profileResult.IsError)
 			{
 				_services.Preferences.GroupId = profile.GroupId;
 				_services.Preferences.IsLoggedIn = !AppDemo.Instance.IsDemoAccount;
 
-				var role = profile.UserType == "1" ? "lector" : "student";
-				_ = ChatHubService.ConnectAndJoin(AppUserData.UserId, role);
-
-				CallService.Initialize();
-				CallNavigationService.Initialize();
-
+				AppSession.StartChat(profile);
 				_services.Navigation.OpenMain();
 			}
-			else if (profile != null && DataAccess.IsError)
+			else if (profile != null && profileResult.IsError)
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+				_services.Dialogs.ShowError(profileResult.ErrorMessage);
 			}
 			else
 			{
@@ -295,57 +288,57 @@ namespace EduCATS.Pages.Login.ViewModels
 		/// <summary>
 		/// Gets user data (username and user's id) by provided credentials and saves it.
 		/// </summary>
-		/// <returns><see cref="UserModel"/> on success, <code>null</code> otherwise.</returns>
-		async Task<UserModel> loginRequest()
+		/// <returns>
+		/// <see cref="UserModel"/> with error details of the failed request (if any).
+		/// </returns>
+		async Task<DataResult<UserModel>> loginRequest()
 		{
 			try
 			{
 				if (AppDemo.Instance.IsDemoAccount)
 				{
 					var userLogin = await DataAccess.Login(Username, Password);
-					AppUserData.SetLoginData(_services, userLogin.UserId, userLogin.Username);
+					AppUserData.SetLoginData(_services, userLogin.Data.UserId, userLogin.Data.Username);
 					return userLogin;
 				}
 
 				RequestController.ResetHttpClient();
 				_services.Preferences.AccessToken = string.Empty;
 
-				// Добавь логи
-				System.Diagnostics.Debug.WriteLine($"=== LOGIN: Requesting token for {Username}");
+				// Р”РѕР±Р°РІСЊ Р»РѕРіРё
 
-				var tokenData = await DataAccess.GetToken(Username, Password);
+				var tokenResult = await DataAccess.GetToken(Username, Password);
+				var tokenData = tokenResult.Data;
 
-				System.Diagnostics.Debug.WriteLine($"=== LOGIN: IsError={DataAccess.IsError}, ErrorMessage={DataAccess.ErrorMessage}");
-				System.Diagnostics.Debug.WriteLine($"=== LOGIN: Token={tokenData?.Token}");
 
-				if (DataAccess.IsError || tokenData == null || string.IsNullOrWhiteSpace(tokenData.Token))
+				if (tokenResult.IsError || tokenData == null || string.IsNullOrWhiteSpace(tokenData.Token))
 				{
-					System.Diagnostics.Debug.WriteLine("=== LOGIN: Token request failed");
-					return new UserModel();
+					AppLogs.Log("Token request failed", nameof(loginRequest));
+					return tokenResult.Map(_ => new UserModel());
 				}
 
 				_services.Preferences.AccessToken = tokenData.Token;
 
-				var accountData = await DataAccess.GetAccountData();
+				var accountResult = await DataAccess.GetAccountData();
+				var accountData = accountResult.Data;
 
-				System.Diagnostics.Debug.WriteLine($"=== LOGIN: AccountData IsError={DataAccess.IsError}, Username={accountData?.Username}");
 
-				if (DataAccess.IsError || accountData == null || string.IsNullOrWhiteSpace(accountData.Username))
+				if (accountResult.IsError || accountData == null || string.IsNullOrWhiteSpace(accountData.Username))
 				{
-					System.Diagnostics.Debug.WriteLine("=== LOGIN: AccountData request failed");
-					return new UserModel();
+					AppLogs.Log("Account data request failed", nameof(loginRequest));
+					return accountResult.Map(_ => new UserModel());
 				}
 
 				AppUserData.SetLoginData(_services, accountData.Id, accountData.Username);
-				return new UserModel
+				return new DataResult<UserModel>(new UserModel
 				{
 					UserId = accountData.Id,
 					Username = accountData.Username
-				};
+				});
 			}
 			catch (Exception ex)
 			{
-				System.Diagnostics.Debug.WriteLine($"=== LOGIN EXCEPTION: {ex}");
+				AppLogs.Log(ex);
 				throw;
 			}
 		}
@@ -356,10 +349,10 @@ namespace EduCATS.Pages.Login.ViewModels
 		/// <param name="username">Username.</param>
 		/// <param name="password">Password.</param>
 		/// <returns>Task.</returns>
-		async Task<UserProfileModel> getProfileData(string username)
+		async Task<DataResult<UserProfileModel>> getProfileData(string username)
 		{
 			var userProfile = await DataAccess.GetProfileInfo(username);
-			AppUserData.SetProfileData(_services, userProfile);
+			AppUserData.SetProfileData(_services, userProfile.Data);
 			return userProfile;
 		}
 
