@@ -7,6 +7,7 @@ using EduCATS.Pages.Today.Base.Views.ViewCells;
 using EduCATS.Themes;
 using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui;
 
@@ -22,16 +23,19 @@ namespace EduCATS.Pages.Today.Base.Views
 		const double _calendarDaysOfWeekCollectionHeight = 50;
 		const string _calendarCollectionDataBinding = ".";
 
+		const double _subjectsCardCornerRadius = RoundedListView.HeaderHeight / 2;
+
 		double _subjectRowHeight = 170;
-		double _subjectDetailedRowHeight = 80;
 
 		static Thickness _newsLabelMagin = new Thickness(10);
-		static Thickness _subjectsMargin = new Thickness(10, 5);
+		static Thickness _subjectsMargin = new Thickness(10, 0, 10, 5);
+		static Thickness _subjectsCardPadding = new Thickness(0, RoundedListView.HeaderHeight / 2);
 		static Thickness _margin = new Thickness(0, 0, 0, 1);
 		static Thickness _listMargin = new Thickness(0, 1, 0, 0);
-		static Thickness _subjectsLabelMargin = new Thickness(0, 10, 10, 10);
+		static Thickness _subjectsLabelMargin = new Thickness(10, 10, 10, 5);
 
 		readonly IPlatformServices _services;
+		readonly TodayItemStyles _itemStyles = new TodayItemStyles();
 
 		public TodayPageView()
 		{
@@ -57,15 +61,20 @@ namespace EduCATS.Pages.Today.Base.Views
 			var newsView = createNewsList();
 			System.Diagnostics.Debug.WriteLine("=== TODAY: newsView created");
 
-			var content = new StackLayout
+			// Grid (not StackLayout) so the news CollectionView gets a finite height
+			// and can virtualize its items.
+			var content = new Grid
 			{
-				Spacing = _spacing,
+				RowSpacing = _spacing,
 				Margin = _margin,
-				Children = {
-			calendarView,
-			newsView
-		}
+				RowDefinitions = {
+					new RowDefinition(GridLength.Auto),
+					new RowDefinition(GridLength.Star)
+				}
 			};
+
+			content.Add(calendarView, 0, 0);
+			content.Add(newsView, 0, 1);
 
 			System.Diagnostics.Debug.WriteLine($"=== TODAY: content children count: {content.Children.Count}");
 			Content = content;
@@ -145,34 +154,45 @@ namespace EduCATS.Pages.Today.Base.Views
 			return calendarCarouselView;
 		}
 
-		ListView createNewsList()
+		RefreshView createNewsList()
 		{
-			var subjectsListView = createSubjectsList();
-			var newsLabel = createNewsLabel();
-
-			var newsListView = new ListView {
-				Header = new StackLayout {
-					Children = {
-						subjectsListView,
-						newsLabel
-					}
-				},
-				Margin = _listMargin,
-				IsPullToRefreshEnabled = true,
-				BackgroundColor = Color.FromArgb(Theme.Current.TodayNewsListBackgroundColor),
-				HasUnevenRows = true,
-				SeparatorVisibility = SeparatorVisibility.None,
-				RefreshControlColor = Color.FromArgb(Theme.Current.BaseActivityIndicatorColorIOS),
-				ItemTemplate = new DataTemplate(typeof(NewsPageViewCell))
+			var header = new VerticalStackLayout {
+				Spacing = _spacing,
+				Children = {
+					createSubjectsLabel(),
+					createSubjectsList(),
+					createNewsLabel()
+				}
 			};
 
-			newsListView.SetBinding(ListView.RefreshCommandProperty, "NewsRefreshCommand");
-			newsListView.SetBinding(ListView.IsRefreshingProperty, "IsNewsRefreshing");
-			newsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "NewsList");
-			newsListView.SetBinding(ListView.SelectedItemProperty, "SelectedNewsItem");
-			newsListView.ItemSelected += (sender, e) => { ((ListView)sender).SelectedItem = null; };
+			// Header is not a templated item, so pass binding context explicitly.
+			header.BindingContext = BindingContext;
 
-			return newsListView;
+			var newsCollectionView = new CollectionView {
+				Header = header,
+				BackgroundColor = Color.FromArgb(Theme.Current.TodayNewsListBackgroundColor),
+				SelectionMode = SelectionMode.Single,
+				ItemTemplate = new DataTemplate(() => new NewsPageViewCell(_itemStyles))
+			};
+
+			newsCollectionView.SetBinding(ItemsView.ItemsSourceProperty, "NewsList");
+			newsCollectionView.SetBinding(SelectableItemsView.SelectedItemProperty, "SelectedNewsItem");
+			newsCollectionView.SelectionChanged += (sender, e) => {
+				if (e.CurrentSelection.Count > 0) {
+					((CollectionView)sender).SelectedItem = null;
+				}
+			};
+
+			var refreshView = new RefreshView {
+				Margin = _listMargin,
+				RefreshColor = Color.FromArgb(Theme.Current.BaseActivityIndicatorColorIOS),
+				Content = newsCollectionView
+			};
+
+			refreshView.SetBinding(RefreshView.CommandProperty, "NewsRefreshCommand");
+			refreshView.SetBinding(RefreshView.IsRefreshingProperty, "IsNewsRefreshing");
+
+			return refreshView;
 		}
 
 		Label createNewsLabel()
@@ -187,19 +207,40 @@ namespace EduCATS.Pages.Today.Base.Views
 			};
 		}
 
-		ListView createSubjectsList()
+		View createSubjectsList()
 		{
-			var subjectsLabel = createSubjectsLabel();
-			var subjectsListView = new RoundedListView(typeof(SubjectPageViewCell), header: subjectsLabel, services: _services)
-			{
-				RowHeight = (int)_subjectDetailedRowHeight,
-				IsEnabled = false,
-				Margin = _subjectsMargin
+			// BindableLayout instead of a nested ListView: a list inside
+			// the scrolling list header was re-measured on every scroll frame.
+			var subjectsLayout = new VerticalStackLayout {
+				Spacing = _spacing
 			};
 
-			subjectsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "NewsSubjectList");
-			subjectsListView.SetBinding(HeightRequestProperty, "CalendarSubjectsHeight");
-			return subjectsListView;
+			BindableLayout.SetItemTemplate(
+				subjectsLayout, new DataTemplate(() => new SubjectPageViewCell(_itemStyles)));
+			BindableLayout.SetEmptyView(subjectsLayout, createSubjectsEmptyView());
+			subjectsLayout.SetBinding(BindableLayout.ItemsSourceProperty, "NewsSubjectList");
+
+			return new Border {
+				Margin = _subjectsMargin,
+				Padding = _subjectsCardPadding,
+				StrokeThickness = 0,
+				StrokeShape = new RoundRectangle {
+					CornerRadius = new CornerRadius(_subjectsCardCornerRadius)
+				},
+				BackgroundColor = Color.FromArgb(Theme.Current.RoundedListViewBackgroundColor),
+				Content = subjectsLayout
+			};
+		}
+
+		Label createSubjectsEmptyView()
+		{
+			return new Label {
+				Style = AppStyles.GetLabelStyle(),
+				HorizontalTextAlignment = TextAlignment.Center,
+				HorizontalOptions = LayoutOptions.Center,
+				Text = CrossLocalization.Translate("base_no_data"),
+				TextColor = Color.FromArgb(Theme.Current.BaseNoDataTextColor)
+			};
 		}
 
 		Label createSubjectsLabel()

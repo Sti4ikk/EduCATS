@@ -1,5 +1,3 @@
-using EduCATS.Helpers.Forms.Converters;
-using EduCATS.Helpers.Forms.Styles;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -8,91 +6,86 @@ using Microsoft.Maui.Graphics;
 
 namespace EduCATS.Pages.Today.Base.Views.ViewCells
 {
-	public class NewsPageViewCell : ViewCell
+	/// <summary>
+	/// News item for <see cref="CollectionView"/>.
+	/// Uses a single flat <see cref="Grid"/> and shared styles/converters
+	/// to keep scrolling cheap.
+	/// </summary>
+	public class NewsPageViewCell : ContentView
 	{
 		const double _boxViewSize = 10;
-		const double _boxViewLayoutSize = 20;
+		const double _iconColumnWidth = 20;
 		const double _clockIconSize = 20;
 		const double _viewCornerRadius = 10;
 		static Thickness _framePadding = new Thickness(10);
 		static Thickness _frameMargin = new Thickness(10, 0, 10, 10);
 
-		public NewsPageViewCell()
+		public NewsPageViewCell(TodayItemStyles styles)
 		{
 			var title = new Label
 			{
 				TextColor = Color.FromArgb(Theme.Current.TodayNewsTitleColor),
-				Style = AppStyles.GetLabelStyle(NamedSize.Large)
+				Style = styles.Large
 			};
 			title.SetBinding(Label.TextProperty, "Title");
 
-			var subjectIndicator = new Ellipse   // ← было BoxView subjectBoxView
+			var subjectIndicator = new Ellipse
 			{
 				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
 				HeightRequest = _boxViewSize,
 				WidthRequest = _boxViewSize
 			};
-			subjectIndicator.SetBinding(
-				Ellipse.FillProperty, "SubjectColor", converter: new StringToColorConverter());
-
-			var boxViewLayout = new StackLayout
-			{
-				HorizontalOptions = LayoutOptions.Start,
-				VerticalOptions = LayoutOptions.Center,
-				HeightRequest = _boxViewLayoutSize,
-				WidthRequest = _boxViewLayoutSize,
-				Padding = new Thickness(0, 5, 0, 0),
-				Children = {
-					subjectIndicator
-					}
-			};
+			subjectIndicator.SetBinding(Ellipse.FillProperty, "SubjectColor", converter: styles.ColorConverter);
 
 			var subject = new Label
 			{
 				VerticalOptions = LayoutOptions.Center,
 				TextColor = Color.FromArgb(Theme.Current.TodayNewsSubjectColor),
-				Style = AppStyles.GetLabelStyle(NamedSize.Micro)
+				Style = styles.Micro
 			};
 			subject.SetBinding(Label.TextProperty, "SubjectName");
 
-			var subjectLayout = new StackLayout
-			{
-				Orientation = StackOrientation.Horizontal,
-				Spacing = 6,
-				Children = {
-					boxViewLayout,
-					subject
-				}
-			};
-
 			var clockIcon = new Image
 			{
-				HorizontalOptions = LayoutOptions.Start,
+				HorizontalOptions = LayoutOptions.Center,
 				VerticalOptions = LayoutOptions.Center,
-				Source = ImageSource.FromFile(Theme.Current.StatisticsCalendarIcon),
-				HeightRequest = _clockIconSize
+				Source = styles.CalendarIcon,
+				HeightRequest = _clockIconSize,
+				WidthRequest = _clockIconSize
 			};
 
 			var date = new Label
 			{
 				VerticalOptions = LayoutOptions.Center,
 				TextColor = Color.FromArgb(Theme.Current.TodayNewsDateColor),
-				Style = AppStyles.GetLabelStyle(NamedSize.Micro)
+				Style = styles.Micro
 			};
 			date.SetBinding(Label.TextProperty, "Date");
 
-			var dateLayout = new StackLayout
+			var grid = new Grid
 			{
-				Orientation = StackOrientation.Horizontal,
-				Spacing = 6,
-				Children = {
-					clockIcon,
-					date
+				ColumnSpacing = 6,
+				RowSpacing = 4,
+				ColumnDefinitions = {
+					new ColumnDefinition(_iconColumnWidth),
+					new ColumnDefinition(GridLength.Star)
+				},
+				RowDefinitions = {
+					new RowDefinition(GridLength.Auto),
+					new RowDefinition(GridLength.Auto),
+					new RowDefinition(GridLength.Auto)
 				}
 			};
 
-			View = new Border
+			grid.Add(title, 0, 0);
+			Grid.SetColumnSpan(title, 2);
+			grid.Add(subjectIndicator, 0, 1);
+			grid.Add(subject, 1, 1);
+			grid.Add(clockIcon, 0, 2);
+			grid.Add(date, 1, 2);
+
+			Content = new Border
 			{
 				StrokeThickness = 0,
 				StrokeShape = new RoundRectangle
@@ -102,14 +95,7 @@ namespace EduCATS.Pages.Today.Base.Views.ViewCells
 				Padding = _framePadding,
 				Margin = _frameMargin,
 				BackgroundColor = Color.FromArgb(Theme.Current.TodayNewsItemBackgroundColor),
-				Content = new StackLayout
-				{
-					Children = {
-						title,
-						subjectLayout,
-						dateLayout
-					}
-				}
+				Content = grid
 			};
 		}
 	}

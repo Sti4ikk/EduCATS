@@ -17,6 +17,7 @@ using Microsoft.Maui.Devices;
 using Microsoft.Maui.Essentials;
 using Nyxbull.Plugins.CrossLocalization;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -61,7 +62,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 		bool _isManualSelectedCalendarDay;
 		DateTime _manualSelectedCalendarDay;
 		List<CalendarSubjectsModel> _calendarSubjectsBackup;
-		readonly Dictionary<int, string> _lecturerNamesCache = new Dictionary<int, string>();
+		readonly ConcurrentDictionary<int, string> _lecturerNamesCache = new ConcurrentDictionary<int, string>();
 
 		public TodayPageViewModel(double subjectHeight, double subjectsHeaderHeight, IPlatformServices services)
 		{
@@ -274,11 +275,11 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 
 		async Task getUpdateMessage()
 		{
-			string version = await AppServices.GerVersionStore();
+			string version = await Task.Run(() => AppServices.GerVersionStore());
 			string[] a = version.Split('.');
 			string[] b = _version.Split('.');
 
-			// Сравнение версий
+			// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 			if ((Convert.ToInt32(a[0]) > Convert.ToInt32(b[0])) ||
 				(Convert.ToInt32(a[1]) > Convert.ToInt32(b[1]) && Convert.ToInt32(a[0]) == Convert.ToInt32(b[0])) ||
 				(Convert.ToInt32(a[2]) > Convert.ToInt32(b[2]) && Convert.ToInt32(a[0]) == Convert.ToInt32(b[0]) &&
@@ -297,7 +298,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 
 				if (result)
 				{
-					// Исправленная часть для MAUI
+					// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ MAUI
 					if (DeviceInfo.Platform == DevicePlatform.Android)
 					{
 						await _services.Device.OpenUri(Servers.EducatsBntuAndroidMarketString);
@@ -312,7 +313,8 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 
 		async Task<List<NewsPageModel>> getNews()
 		{
-			var news = await DataAccess.GetNews(_services.Preferences.UserLogin);
+			var userLogin = _services.Preferences.UserLogin;
+			var news = await Task.Run(() => DataAccess.GetNews(userLogin));
 
 			if (DataAccess.IsError && DataAccess.IsSessionExpiredError)
 			{
@@ -342,7 +344,8 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 
 		async Task<IList<SubjectModel>> getSubjects()
 		{
-			return await DataAccess.GetProfileInfoSubjects(_services.Preferences.UserLogin);
+			var userLogin = _services.Preferences.UserLogin;
+			return await Task.Run(() => DataAccess.GetProfileInfoSubjects(userLogin));
 		}
 
 		List<NewsPageModel> composeNewsWithSubjects(IList<NewsModel> news, IList<SubjectModel> subjects)
@@ -500,7 +503,7 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 					selectCalendarDay(DateTime.Today);
 				}
 
-				// Используем переданный position вместо e.Position
+				// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ position пїЅпїЅпїЅпїЅпїЅпїЅ e.Position
 				switch (position)
 				{
 					case _minimumCalendarPosition:
@@ -570,19 +573,20 @@ namespace EduCATS.Pages.Today.Base.ViewModels
 			{
 				var selectedDate = dateTime.Date;
 
-				var scheduleItemsTask = getScheduleItemsForDate(selectedDate);
-				var consultationItemsTask = getConsultationItemsForDate(selectedDate);
-				await Task.WhenAll(scheduleItemsTask, consultationItemsTask);
+				// Network requests, JSON parsing and mapping run off the main thread;
+				// only the resulting list is assigned on the UI thread.
+				var mergedItems = await Task.Run(async () => {
+					var scheduleItemsTask = getScheduleItemsForDate(selectedDate);
+					var consultationItemsTask = getConsultationItemsForDate(selectedDate);
+					await Task.WhenAll(scheduleItemsTask, consultationItemsTask);
 
-				var scheduleItems = scheduleItemsTask.Result;
-				var consultationItems = consultationItemsTask.Result;
-
-				var mergedItems = scheduleItems
-					.Concat(consultationItems)
-					.OrderBy(item => getStartTimeSortKey(item.Start))
-					.ThenBy(item => item.Name)
-					.Select(item => new SubjectPageModel(item))
-					.ToList();
+					return scheduleItemsTask.Result
+						.Concat(consultationItemsTask.Result)
+						.OrderBy(item => getStartTimeSortKey(item.Start))
+						.ThenBy(item => item.Name)
+						.Select(item => new SubjectPageModel(item))
+						.ToList();
+				});
 
 				NewsSubjectList = mergedItems;
 				setupNewsSubjectsHeight();
