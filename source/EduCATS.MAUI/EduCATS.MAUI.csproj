@@ -2,6 +2,8 @@
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+		<!-- CI builds one platform (-p:OnlyTargetFramework=net10.0-android): restore then needs only its workload. -->
+		<TargetFrameworks Condition="'$(OnlyTargetFramework)' != ''">$(OnlyTargetFramework)</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>EduCATS.MAUI</RootNamespace>
 		<UseMaui>true</UseMaui>
