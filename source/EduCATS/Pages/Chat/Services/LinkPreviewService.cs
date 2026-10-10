@@ -102,7 +102,7 @@ namespace EduCATS.Pages.Chat.Services
 			try
 			{
 				using var cancellation = new CancellationTokenSource(_timeout);
-				using var response = await _client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation.Token);
+				using var response = await _client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation.Token).ConfigureAwait(false);
 
 				var mediaType = response.Content.Headers.ContentType?.MediaType;
 
@@ -112,7 +112,7 @@ namespace EduCATS.Pages.Chat.Services
 					return null;
 				}
 
-				var html = await readLimitedAsync(response, cancellation.Token);
+				var html = await readLimitedAsync(response, cancellation.Token).ConfigureAwait(false);
 				return Parse(html, response.RequestMessage?.RequestUri ?? uri);
 			}
 			catch (Exception ex)
@@ -124,13 +124,13 @@ namespace EduCATS.Pages.Chat.Services
 
 		static async Task<string> readLimitedAsync(HttpResponseMessage response, CancellationToken token)
 		{
-			await using var stream = await response.Content.ReadAsStreamAsync(token);
+			await using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
 			var buffer = new byte[_maxHtmlBytes];
 			var total = 0;
 			int read;
 
 			while (total < buffer.Length &&
-				(read = await stream.ReadAsync(buffer.AsMemory(total, buffer.Length - total), token)) > 0)
+				(read = await stream.ReadAsync(buffer.AsMemory(total, buffer.Length - total), token).ConfigureAwait(false)) > 0)
 			{
 				total += read;
 			}

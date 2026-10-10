@@ -1,10 +1,8 @@
 ﻿using EduCATS.Configuration;
-using EduCATS.Fonts;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Networking;
 using EduCATS.Pages.Login.Views;
-using Nyxbull.Plugins.CrossLocalization;
 
 namespace EduCATS.MAUI
 {
@@ -45,6 +43,8 @@ namespace EduCATS.MAUI
 			try
 			{
 				EduCATS.Helpers.Logs.AppLogs.Log(exception, source);
+				// The app may be terminating: write the log right now.
+				EduCATS.Helpers.Logs.AppLogs.Flush();
 			}
 			catch
 			{
@@ -87,6 +87,14 @@ namespace EduCATS.MAUI
 			}
 		}
 
+		protected override void OnSleep()
+		{
+			base.OnSleep();
+
+			// The system may kill the app in the background.
+			EduCATS.Helpers.Logs.AppLogs.Flush();
+		}
+
 		protected override void OnResume()
 		{
 			base.OnResume();
@@ -116,14 +124,9 @@ namespace EduCATS.MAUI
 
 		void initialize(IPlatformServices services)
 		{
-			var assembly = typeof(EduCATS.Constants.GlobalConsts).Assembly;
-			CrossLocalization.Initialize(
-				assembly,
-				"EduCATS",
-				"Localization"
-			);
+			// Localization, logs, cache, theme and fonts (each set up once:
+			// localization files used to be parsed twice on start).
 			EduCATS.Configuration.AppConfig.InitialSetup(services);
-			FontsController.Initialize(services);
 		}
 
 		/// <summary>

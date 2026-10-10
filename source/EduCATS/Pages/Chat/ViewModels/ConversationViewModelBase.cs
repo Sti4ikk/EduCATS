@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EduCATS.Data.User;
+using EduCATS.Helpers.Extensions;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Logs;
 using EduCATS.Pages.Chat.Models;
@@ -106,7 +107,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			Services = services;
 			ChatId = chatId;
 			Title = title;
-			Messages = new ObservableCollection<object>();
+			Messages = new RangeObservableCollection<object>();
 			SearchResults = new ObservableCollection<object>();
 			_messageText = ChatLocalSettings.GetDraft(chatId, IsGroupChat);
 		}
@@ -117,8 +118,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 		public abstract bool IsGroupChat { get; }
 
-		ObservableCollection<object> _messages;
-		public ObservableCollection<object> Messages
+		RangeObservableCollection<object> _messages;
+		public RangeObservableCollection<object> Messages
 		{
 			get => _messages;
 			set => SetProperty(ref _messages, value);
@@ -318,11 +319,11 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 				// New messages shift the server window, so a page may repeat known ones.
 				var knownIds = Messages.OfType<MessageItemModel>().Select(m => m.Id).ToHashSet();
-				var older = page
+				var older = await Task.Run(() => page
 					.Where(m => !knownIds.Contains(m.Id))
 					.Select(prepare)
 					.OrderBy(m => m.Time)
-					.ToList();
+					.ToList());
 
 				if (older.Count == 0)
 				{
@@ -337,12 +338,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 				}
 
 				var anchor = Messages.FirstOrDefault();
-				var items = buildItems(older);
-
-				for (var index = 0; index < items.Count; index++)
-				{
-					Messages.Insert(index, items[index]);
-				}
+				Messages.InsertRange(0, buildItems(older));
 
 				loadLinkPreviews(older);
 				OlderMessagesLoaded?.Invoke(anchor);
@@ -455,7 +451,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 			// Messages saved on the device first: the chat opens instantly
 			// (and works offline), the server page replaces them.
-			if (showCachedMessages())
+			if (await showCachedMessages())
 			{
 				showLoading = false;
 			}
@@ -475,8 +471,12 @@ namespace EduCATS.Pages.Chat.ViewModels
 					return;
 				}
 
-				ChatOfflineCache.SaveMessages(ChatId, IsGroupChat, page);
-				var history = await Task.Run(() => page.Select(prepare).OrderBy(m => m.Time).ToList());
+				// Off the UI thread: messages may carry big base64 attachments.
+				var history = await Task.Run(() =>
+				{
+					ChatOfflineCache.SaveMessages(ChatId, IsGroupChat, page);
+					return page.Select(prepare).OrderBy(m => m.Time).ToList();
+				});
 
 				// Own messages not accepted by the server yet stay in the feed.
 				var unsent = Messages
@@ -484,13 +484,19 @@ namespace EduCATS.Pages.Chat.ViewModels
 					.Where(m => m.LocalId != null && m.Status != MessageSendStatus.Sent)
 					.ToList();
 
-				Messages = new ObservableCollection<object>(buildItems(history.Concat(unsent)));
+				Messages = new RangeObservableCollection<object>(buildItems(history.Concat(unsent)));
 				_serverOffset = page.Count;
 				HasMoreMessages = page.Count == PageSize;
 
 				ChatUnreadService.MarkRead(ChatId, IsGroupChat);
 				_ = MarkReadOnServerAsync();
 				loadLinkPreviews(history);
+
+				// The real time of the latest message for the chat list order.
+				if (history.Count > 0)
+				{
+					ChatActivityService.Touch(ChatId, IsGroupChat, history[history.Count - 1].LocalTime);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -514,24 +520,28 @@ namespace EduCATS.Pages.Chat.ViewModels
 		/// Show the cached latest page if nothing is shown yet.
 		/// </summary>
 		/// <returns><c>true</c> if cached messages are shown.</returns>
-		bool showCachedMessages()
+		async Task<bool> showCachedMessages()
 		{
 			if (Messages.Count > 0)
 			{
 				return false;
 			}
 
-			var cached = ChatOfflineCache.LoadMessages(ChatId, IsGroupChat);
+			// Reading and parsing the cache off the UI thread.
+			var history = await Task.Run(() =>
+				ChatOfflineCache.LoadMessages(ChatId, IsGroupChat)?
+					.Select(prepare)
+					.OrderBy(m => m.Time)
+					.ToList());
 
-			if (cached == null || cached.Count == 0)
+			if (history == null || history.Count == 0 || Messages.Count > 0)
 			{
 				return false;
 			}
 
-			var history = cached.Select(prepare).OrderBy(m => m.Time).ToList();
-			Messages = new ObservableCollection<object>(buildItems(history));
-			_serverOffset = cached.Count;
-			HasMoreMessages = cached.Count == PageSize;
+			Messages = new RangeObservableCollection<object>(buildItems(history));
+			_serverOffset = history.Count;
+			HasMoreMessages = history.Count == PageSize;
 			loadLinkPreviews(history);
 			HistoryLoaded?.Invoke();
 			return true;
@@ -759,9 +769,17 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 		void appendMessage(MessageItemModel message)
 		{
-			var lastDate = Messages
-				.OfType<MessageItemModel>()
-				.LastOrDefault()?.LocalTime.Date;
+			DateTime? lastDate = null;
+
+			// From the end: the last message is there, no need to walk the whole feed.
+			for (var index = Messages.Count - 1; index >= 0; index--)
+			{
+				if (Messages[index] is MessageItemModel last)
+				{
+					lastDate = last.LocalTime.Date;
+					break;
+				}
+			}
 
 			if (lastDate == null || message.LocalTime.Date != lastDate.Value)
 			{
@@ -769,6 +787,9 @@ namespace EduCATS.Pages.Chat.ViewModels
 			}
 
 			Messages.Add(message);
+
+			// The chat goes to the top of the chat list.
+			ChatActivityService.Touch(ChatId, IsGroupChat, message.LocalTime);
 		}
 
 		MessageItemModel prepare(MessageItemModel message)

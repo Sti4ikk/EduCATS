@@ -87,7 +87,8 @@ namespace EduCATS.Pages.Today.Base.Views
 		{
 			var calendarDaysOfWeekCollectionView = new CollectionView {
 				BackgroundColor = Color.FromArgb(Theme.Current.TodayCalendarBackgroundColor),
-				IsEnabled = false,
+				// Not tappable. Not IsEnabled = false: it turns the labels grey.
+				InputTransparent = true,
 				HeightRequest = _calendarDaysOfWeekCollectionHeight,
 				ItemsLayout = new GridItemsLayout(_calendarItemsQuantity, ItemsLayoutOrientation.Vertical),
 				ItemTemplate = new DataTemplate(

@@ -118,7 +118,7 @@ namespace EduCATS.Pages.Chat.Services
 			try
 			{
 				using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-				using var response = await sendAsync(HttpMethod.Get, GetFileUrl(chatId, fileName), null, cancellation.Token);
+				using var response = await sendAsync(HttpMethod.Get, GetFileUrl(chatId, fileName), null, cancellation.Token).ConfigureAwait(false);
 
 				if (!response.IsSuccessStatusCode)
 				{
@@ -126,7 +126,7 @@ namespace EduCATS.Pages.Chat.Services
 					return null;
 				}
 
-				return await response.Content.ReadAsByteArrayAsync(cancellation.Token);
+				return await response.Content.ReadAsByteArrayAsync(cancellation.Token).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
@@ -160,7 +160,7 @@ namespace EduCATS.Pages.Chat.Services
 				form.Add(new StringContent(chatId.ToString()), "ChatId");
 
 				using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-				using var response = await sendAsync(HttpMethod.Post, ChatLinks.UploadFile, form, cancellation.Token);
+				using var response = await sendAsync(HttpMethod.Post, ChatLinks.UploadFile, form, cancellation.Token).ConfigureAwait(false);
 
 				if (!response.IsSuccessStatusCode)
 				{
@@ -208,7 +208,7 @@ namespace EduCATS.Pages.Chat.Services
 			try
 			{
 				using var cancellation = new CancellationTokenSource(_requestTimeout);
-				using var response = await sendAsync(HttpMethod.Get, link, null, cancellation.Token);
+				using var response = await sendAsync(HttpMethod.Get, link, null, cancellation.Token).ConfigureAwait(false);
 
 				if (!response.IsSuccessStatusCode)
 				{
@@ -216,7 +216,7 @@ namespace EduCATS.Pages.Chat.Services
 					return nullOnError ? null : new List<T>();
 				}
 
-				var body = await response.Content.ReadAsStringAsync(cancellation.Token);
+				var body = await response.Content.ReadAsStringAsync(cancellation.Token).ConfigureAwait(false);
 				return JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 			}
 			catch (Exception ex)
@@ -236,7 +236,7 @@ namespace EduCATS.Pages.Chat.Services
 			try
 			{
 				using var cancellation = new CancellationTokenSource(_requestTimeout);
-				using var response = await sendAsync(HttpMethod.Get, link, null, cancellation.Token);
+				using var response = await sendAsync(HttpMethod.Get, link, null, cancellation.Token).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
@@ -268,9 +268,9 @@ namespace EduCATS.Pages.Chat.Services
 				long sent = 0;
 				int read;
 
-				while ((read = await _stream.ReadAsync(buffer)) > 0)
+				while ((read = await _stream.ReadAsync(buffer).ConfigureAwait(false)) > 0)
 				{
-					await stream.WriteAsync(buffer.AsMemory(0, read));
+					await stream.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(false);
 					sent += read;
 
 					if (total > 0)

@@ -33,7 +33,7 @@ namespace EduCATS.Networking.AppServices
 			}
 
 			var appWebService = new AppWebServiceController(PlatformServices);
-			await appWebService.SendRequest(HttpMethod.Get, link);
+			await appWebService.SendRequest(HttpMethod.Get, link).ConfigureAwait(false);
 			return new KeyValuePair<string, HttpStatusCode>(appWebService.Json, appWebService.StatusCode);
 		}
 
@@ -56,7 +56,7 @@ namespace EduCATS.Networking.AppServices
 			}
 
 			var appWebService = new AppWebServiceController(PlatformServices);
-			await appWebService.SendRequest(HttpMethod.Post, link, body);
+			await appWebService.SendRequest(HttpMethod.Post, link, body).ConfigureAwait(false);
 			return new KeyValuePair<string, HttpStatusCode>(appWebService.Json, appWebService.StatusCode);
 		}
 

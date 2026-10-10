@@ -14,6 +14,8 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 		const double _avatarSize = 50;
 		const double _statusDotSize = 12;
 
+		static readonly Base64ToImageSourceConverter _avatarConverter = new Base64ToImageSourceConverter();
+
 		static Thickness _padding = new Thickness(15, 10);
 
 		public ChatListViewCell()
@@ -55,7 +57,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				HeightRequest = _avatarSize
 			};
 
-			image.SetBinding(Image.SourceProperty, nameof(ChatItemModel.Img), converter: new Base64ToImageSourceConverter());
+			image.SetBinding(Image.SourceProperty, static (ChatItemModel c) => c.Img, converter: _avatarConverter);
 
 			return new Border
 			{
@@ -84,7 +86,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				StrokeThickness = 2
 			};
 
-			dot.SetBinding(VisualElement.IsVisibleProperty, nameof(ChatItemModel.IsOnlineVisible));
+			dot.SetBinding(VisualElement.IsVisibleProperty, static (ChatItemModel c) => c.IsOnlineVisible);
 			return dot;
 		}
 
@@ -98,7 +100,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				LineBreakMode = LineBreakMode.TailTruncation
 			};
 
-			label.SetBinding(Label.TextProperty, nameof(ChatItemModel.Name));
+			label.SetBinding(Label.TextProperty, static (ChatItemModel c) => c.Name);
 			return label;
 		}
 	}

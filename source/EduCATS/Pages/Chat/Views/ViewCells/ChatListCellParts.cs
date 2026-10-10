@@ -25,10 +25,10 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 		public static HorizontalStackLayout CreateMarks()
 		{
 			var pinnedLabel = new Label { Text = "📌", FontSize = 12, VerticalOptions = LayoutOptions.Center };
-			pinnedLabel.SetBinding(VisualElement.IsVisibleProperty, nameof(ChatListItemModel.IsPinned));
+			pinnedLabel.SetBinding(VisualElement.IsVisibleProperty, static (ChatListItemModel c) => c.IsPinned);
 
 			var mutedLabel = new Label { Text = "🔕", FontSize = 12, VerticalOptions = LayoutOptions.Center };
-			mutedLabel.SetBinding(VisualElement.IsVisibleProperty, nameof(ChatListItemModel.IsMuted));
+			mutedLabel.SetBinding(VisualElement.IsVisibleProperty, static (ChatListItemModel c) => c.IsMuted);
 
 			return new HorizontalStackLayout
 			{

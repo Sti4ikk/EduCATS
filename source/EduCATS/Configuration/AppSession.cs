@@ -153,6 +153,7 @@ namespace EduCATS.Configuration
 			_ = LeaveChat();
 			ChatUnreadService.Clear();
 			ChatPresenceService.Clear();
+			ChatActivityService.Clear();
 			ChatFileCache.Clear();
 			AppDemo.Instance.IsDemoAccount = false;
 			services.Preferences.ResetPrefs();

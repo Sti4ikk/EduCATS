@@ -112,6 +112,30 @@ namespace EduCATS.Pages.Chat.Models
 		[JsonIgnore]
 		public bool IsPlainText => !IsAttachment;
 
+		string _linksCheckedText;
+		bool _hasLinks;
+
+		/// <summary>
+		/// Does the text contain links (checked once per text).
+		/// </summary>
+		[JsonIgnore]
+		public bool HasLinks
+		{
+			get
+			{
+				if (!ReferenceEquals(_linksCheckedText, Text))
+				{
+					_hasLinks = EduCATS.Pages.Chat.Services.MessageLinkParser.GetFirstUrl(Text) != null;
+					_linksCheckedText = Text;
+				}
+
+				return _hasLinks;
+			}
+		}
+
+		[JsonIgnore]
+		public bool HasNoLinks => !HasLinks;
+
 		/// <summary>
 		/// "имя_файла.pdf (123.4 KB)" для чипа файла в UI.
 		/// </summary>
@@ -120,10 +144,31 @@ namespace EduCATS.Pages.Chat.Models
 		{
 			get
 			{
-				var fileName = !string.IsNullOrEmpty(FileContent) ? FileContent : Text;
+				var fileName = FileName;
 				return string.IsNullOrEmpty(FileSize) ? fileName : $"{fileName} ({FileSize})";
 			}
 		}
+
+		/// <summary>
+		/// File names are never that long: longer content is the file itself.
+		/// </summary>
+		const int _maxFileNameLength = 260;
+
+		/// <summary>
+		/// Old messages carry the file itself (base64) in <see cref="FileContent"/>
+		/// and its name in <see cref="Text"/>; new ones - the uploaded file name.
+		/// </summary>
+		[JsonIgnore]
+		public bool HasInlineFile => FileContent?.Length > _maxFileNameLength;
+
+		/// <summary>
+		/// Attachment file name.
+		/// </summary>
+		[JsonIgnore]
+		public string FileName =>
+			HasInlineFile || string.IsNullOrEmpty(FileContent) ?
+				(string.IsNullOrWhiteSpace(Text) ? "file" : Text) :
+				FileContent;
 
 		MessageSendStatus _status;
 

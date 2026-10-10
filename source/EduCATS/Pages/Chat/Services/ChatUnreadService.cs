@@ -173,14 +173,26 @@ namespace EduCATS.Pages.Chat.Services
 
 		static void setCounters(IEnumerable<ChatListItemModel> chats, bool isGroup)
 		{
+			// Chats with more unread messages than before got new ones.
+			var withNewMessages = new List<int>();
+
 			lock (_sync)
 			{
+				var previous = isGroup ? _group : _personal;
 				var counters = new Dictionary<int, int>();
 
 				foreach (var chat in chats)
 				{
 					var isOpen = _activeChatId == chat.Id && _isActiveChatGroup == isGroup;
 					counters[chat.Id] = isOpen ? 0 : chat.Unread;
+
+					// A chat unknown before (not on the first load) is a new conversation.
+					var known = previous.TryGetValue(chat.Id, out var value) ? value : (previous.Count > 0 ? 0 : int.MaxValue);
+
+					if (counters[chat.Id] > known)
+					{
+						withNewMessages.Add(chat.Id);
+					}
 				}
 
 				if (isGroup)
@@ -191,6 +203,11 @@ namespace EduCATS.Pages.Chat.Services
 				{
 					_personal = counters;
 				}
+			}
+
+			foreach (var chatId in withNewMessages)
+			{
+				ChatActivityService.Touch(chatId, isGroup, DateTime.UtcNow);
 			}
 
 			recalculate();

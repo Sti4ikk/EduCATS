@@ -1,6 +1,7 @@
 ﻿using System;
 using EduCATS.Controls;
 using EduCATS.Helpers.Forms.Effects;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Pages.Learning.Views;
 using EduCATS.Pages.Settings.Base.Views;
 using EduCATS.Pages.Statistics.Base.Views;
@@ -64,7 +65,14 @@ namespace EduCATS.Pages.Main
 
 		void setPageDetails()
 		{
-			BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor);
+			// iOS: the system (translucent, "liquid glass" since iOS 26) tab bar.
+			// An opaque one keeps pages above it and leaves an empty strip
+			// over the floating bar.
+			if (DeviceInfo.Platform != DevicePlatform.iOS)
+			{
+				BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor);
+			}
+
 			SelectedTabColor = Color.FromArgb(Theme.Current.MainSelectedTabColor);
 			UnselectedTabColor = Color.FromArgb(Theme.Current.MainUnselectedTabColor);
 		}
@@ -101,12 +109,22 @@ namespace EduCATS.Pages.Main
 				contentPage.Content = OfflineBanner.Wrap(contentPage.Content);
 			}
 
-			return new NavigationPage(page)
+			// Pages are pushed right into the tab's navigation page (see AppPages),
+			// so its bar is the only one and has the app colors.
+			var navigationPage = new NavigationPage(page)
 			{
 				Title = title,
 				IconImageSource = ImageSource.FromFile(icon),
-				BackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor) // FromHex → FromArgb
+				BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor),
+				BarTextColor = Color.FromArgb(Theme.Current.BaseAppColor),
+				// Shows through where a page doesn't reach (e.g. under the iOS tab bar).
+				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor)
 			};
+
+			navigationPage.Pushed += (sender, e) => TabBarVisibility.Update(this);
+			navigationPage.Popped += (sender, e) => TabBarVisibility.Update(this);
+			navigationPage.PoppedToRoot += (sender, e) => TabBarVisibility.Update(this);
+			return navigationPage;
 		}
 
 		void setAndroidConfiguration()
@@ -124,6 +142,7 @@ namespace EduCATS.Pages.Main
 		void pageChanged(object sender, EventArgs e)
 		{
 			setCurrentTitle();
+			TabBarVisibility.Update(this);
 		}
 
 		void setCurrentTitle()

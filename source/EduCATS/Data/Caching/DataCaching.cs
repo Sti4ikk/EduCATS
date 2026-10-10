@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using EduCATS.Constants;
 using MonkeyCache.FileStore;
 
@@ -33,23 +34,58 @@ namespace EduCATS.Data.Caching
 		/// </summary>
 		/// <param name="key">Key for data.</param>
 		/// <returns>Cached data if key exists.</returns>
+		/// <remarks>
+		/// Expired data isn't returned (it's deleted). Only this key is checked:
+		/// cleaning the whole cache on every read walked through all of it.
+		/// </remarks>
 		public static T Get(string key)
 		{
-			removeExpired();
+			DataCachingCleanup.RunOnce();
+
+			if (!Barrel.Current.Exists(key))
+			{
+				return default;
+			}
+
+			if (Barrel.Current.IsExpired(key))
+			{
+				Barrel.Current.Empty(key);
+				return default;
+			}
+
 			return Barrel.Current.Get<T>(key);
 		}
+	}
 
-		/// <summary>
-		/// Delete expired cache.
-		/// </summary>
-		/// <remarks>
-		/// Expiration time is specified in
-		/// <see cref="GlobalConsts.CacheExpirationInDays"/> constant.
-		/// </remarks>
-		static void removeExpired()
+	/// <summary>
+	/// Removes expired cache entries once per app run, in the background.
+	/// </summary>
+	/// <remarks>
+	/// Expiration time is specified in
+	/// <see cref="GlobalConsts.CacheExpirationInDays"/> constant.
+	/// </remarks>
+	static class DataCachingCleanup
+	{
+		static int _isStarted;
+
+		public static void RunOnce()
 		{
-			Barrel.Current.EmptyExpired();
+			if (System.Threading.Interlocked.Exchange(ref _isStarted, 1) == 1)
+			{
+				return;
+			}
+
+			Task.Run(() =>
+			{
+				try
+				{
+					Barrel.Current.EmptyExpired();
+				}
+				catch
+				{
+					// Cleanup is best effort: the next run retries.
+				}
+			});
 		}
 	}
 }
-

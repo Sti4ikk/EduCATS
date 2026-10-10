@@ -48,6 +48,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			ChatPresenceService.Changed += onPresenceChanged;
 			ChatUnreadService.Changed += onUnreadChanged;
 			ChatLocalSettings.Changed += onLocalSettingsChanged;
+			ChatActivityService.Changed += onActivityChanged;
 
 			if (!_isLoaded)
 			{
@@ -72,6 +73,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			ChatPresenceService.Changed -= onPresenceChanged;
 			ChatUnreadService.Changed -= onUnreadChanged;
 			ChatLocalSettings.Changed -= onLocalSettingsChanged;
+			ChatActivityService.Changed -= onActivityChanged;
 		}
 
 		Command _searchMessagesCommand;
@@ -157,7 +159,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 			set
 			{
 				SetProperty(ref _searchText, value);
-				applyFilter();
+				scheduleFilter();
 			}
 		}
 
@@ -250,7 +252,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 		{
 			// Cached lists first: the tab opens instantly (and works offline),
 			// the network result replaces them.
-			var hasCachedData = showCachedLists();
+			var hasCachedData = await showCachedLists();
 			var isDialogShown = showDialog && !hasCachedData;
 
 			if (isDialogShown)
@@ -274,7 +276,8 @@ namespace EduCATS.Pages.Chat.ViewModels
 					if (!isError)
 					{
 						_allChats = chats;
-						ChatOfflineCache.SaveChats(chats);
+						// Avatars are base64: serializing and writing them takes a while.
+						_ = Task.Run(() => ChatOfflineCache.SaveChats(chats));
 						ChatPresenceService.Seed(_allChats);
 						ChatUnreadService.SetPersonal(_allChats);
 					}
@@ -287,7 +290,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 					if (!isError)
 					{
 						_allGroupChats = flatten(subjects);
-						ChatOfflineCache.SaveGroups(subjects);
+						_ = Task.Run(() => ChatOfflineCache.SaveGroups(subjects));
 						ChatUnreadService.SetGroups(_allGroupChats);
 					}
 				}
@@ -322,22 +325,23 @@ namespace EduCATS.Pages.Chat.ViewModels
 		/// Show chats saved on the device if nothing is shown yet.
 		/// </summary>
 		/// <returns><c>true</c> if cached chats are shown.</returns>
-		bool showCachedLists()
+		async Task<bool> showCachedLists()
 		{
+			// The cache is read and parsed off the UI thread.
 			if (IsPersonalMode && _allChats.Count == 0)
 			{
-				var cachedChats = ChatOfflineCache.LoadChats();
+				var cachedChats = await Task.Run(ChatOfflineCache.LoadChats);
 
-				if (cachedChats?.Count > 0)
+				if (cachedChats?.Count > 0 && _allChats.Count == 0)
 				{
 					_allChats = cachedChats;
 				}
 			}
 			else if (!IsPersonalMode && _allGroupChats.Count == 0)
 			{
-				var cachedGroups = ChatOfflineCache.LoadGroups();
+				var cachedGroups = await Task.Run(ChatOfflineCache.LoadGroups);
 
-				if (cachedGroups?.Count > 0)
+				if (cachedGroups?.Count > 0 && _allGroupChats.Count == 0)
 				{
 					_allGroupChats = flatten(cachedGroups);
 				}
@@ -354,28 +358,68 @@ namespace EduCATS.Pages.Chat.ViewModels
 			return hasData;
 		}
 
+		/// <summary>
+		/// Typing pause before filtering: the list was rebuilt on every key press.
+		/// </summary>
+		const int _filterDelayMs = 250;
+
+		int _filterVersion;
+
+		async void scheduleFilter()
+		{
+			var version = ++_filterVersion;
+
+			// Cleared search is applied right away.
+			if (!string.IsNullOrWhiteSpace(_searchText))
+			{
+				await Task.Delay(_filterDelayMs);
+
+				if (version != _filterVersion)
+				{
+					return;
+				}
+			}
+
+			applyFilter();
+		}
+
 		void applyFilter()
 		{
 			var query = SearchText?.Trim();
 
-			// Pinned chats first, the server order otherwise (stable sort).
-			Chats = (string.IsNullOrEmpty(query)
+			// Pinned chats first, then chats with the newest messages.
+			Chats = ChatActivityService.Sort(string.IsNullOrEmpty(query)
 				? _allChats
 				: _allChats
 					.Where(c => !string.IsNullOrEmpty(c.Name) &&
-						c.Name.Contains(query, StringComparison.OrdinalIgnoreCase)))
-				.OrderByDescending(c => c.IsPinned)
-				.ToList();
+						c.Name.Contains(query, StringComparison.OrdinalIgnoreCase)));
 
 			// ИСПРАВЛЕНИЕ: Добавлен поиск по SubjectName (названию предмета)
-			GroupChats = (string.IsNullOrEmpty(query)
+			GroupChats = ChatActivityService.Sort(string.IsNullOrEmpty(query)
 				? _allGroupChats
 				: _allGroupChats
 					.Where(g =>
 						(!string.IsNullOrEmpty(g.SubjectName) && g.SubjectName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
-						(!string.IsNullOrEmpty(g.DisplayName) && g.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase))))
-				.OrderByDescending(g => g.IsPinned)
-				.ToList();
+						(!string.IsNullOrEmpty(g.DisplayName) && g.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase))));
+		}
+
+		/// <summary>
+		/// A chat got a new message: re-sort if the order changed.
+		/// </summary>
+		void onActivityChanged()
+		{
+			var chats = ChatActivityService.Sort(Chats ?? new List<ChatItemModel>());
+			var groups = ChatActivityService.Sort(GroupChats ?? new List<GroupChatModel>());
+
+			if (Chats != null && !chats.SequenceEqual(Chats))
+			{
+				Chats = chats;
+			}
+
+			if (GroupChats != null && !groups.SequenceEqual(GroupChats))
+			{
+				GroupChats = groups;
+			}
 		}
 
 		List<GroupChatModel> flatten(List<SubjectChatsModel> subjects)

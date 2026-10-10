@@ -96,10 +96,14 @@ namespace EduCATS.Controls.RoundedListView
 		/// <summary>
 		/// Is pull-to-refresh enabled.
 		/// </summary>
+		/// <remarks>
+		/// Not <c>IsEnabled</c>: it disables the whole list content (labels turn
+		/// grey, entries and switches stop working), only the gesture is turned off.
+		/// </remarks>
 		public bool IsPullToRefreshEnabled
 		{
-			get => _refreshView.IsEnabled;
-			set => _refreshView.IsEnabled = value;
+			get => _refreshView.IsRefreshEnabled;
+			set => _refreshView.IsRefreshEnabled = value;
 		}
 
 		/// <summary>
@@ -141,7 +145,7 @@ namespace EduCATS.Controls.RoundedListView
 
 			_refreshView = new RefreshView
 			{
-				IsEnabled = false,
+				IsRefreshEnabled = false,
 				RefreshColor = Color.FromArgb(
 					DeviceInfo.Platform == DevicePlatform.Android ?
 						Theme.Current.BaseActivityIndicatorColorAndroid :

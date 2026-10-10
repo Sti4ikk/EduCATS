@@ -3,6 +3,7 @@ using EduCATS.Helpers.Logs;
 using EduCATS.Networking;
 using Nyxbull.Plugins.CrossLocalization;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
 
@@ -343,14 +344,32 @@ namespace EduCATS.Helpers.Forms.Settings
 		/// <param name="token">Access token.</param>
 		static void saveAccessToken(string token)
 		{
+			// Written in the background (Keystore encryption is slow, and the
+			// token is set from the UI thread on login); the value in memory
+			// is used meanwhile. Writes are queued to keep their order.
+			lock (_accessTokenSync) {
+				_accessTokenWrite = _accessTokenWrite.ContinueWith(
+					_ => writeAccessToken(token),
+					CancellationToken.None,
+					TaskContinuationOptions.None,
+					TaskScheduler.Default);
+			}
+		}
+
+		/// <summary>
+		/// The last queued secure storage write.
+		/// </summary>
+		static Task _accessTokenWrite = Task.CompletedTask;
+
+		static void writeAccessToken(string token)
+		{
 			try {
 				if (string.IsNullOrEmpty(token)) {
 					SecureStorage.Default.Remove(_accessTokenKey);
 					return;
 				}
 
-				Task.Run(() => SecureStorage.Default.SetAsync(_accessTokenKey, token))
-					.GetAwaiter().GetResult();
+				SecureStorage.Default.SetAsync(_accessTokenKey, token).GetAwaiter().GetResult();
 			} catch (Exception ex) {
 				AppLogs.Log(ex);
 			}

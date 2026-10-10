@@ -16,6 +16,12 @@ namespace EduCATS.Helpers.Forms
 				return html;
 			}
 
+			// Most messages are plain text: nothing to replace.
+			if (html.IndexOf('<') < 0 && html.IndexOf('&') < 0)
+			{
+				return html.Trim();
+			}
+
 			var text = Regex.Replace(html, "<br\\s*/?>", "\n", RegexOptions.IgnoreCase);
 			text = Regex.Replace(text, "</p>\\s*<p>", "\n", RegexOptions.IgnoreCase);
 			text = Regex.Replace(text, "<.*?>", string.Empty);

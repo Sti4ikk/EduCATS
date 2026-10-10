@@ -117,17 +117,25 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 			return result.Data ?? fallback;
 		}
 
+		/// <summary>
+		/// Shared client: a new one per request opened a new connection
+		/// (and TLS handshake) every time and was never disposed.
+		/// </summary>
+		static readonly HttpClient _lecturesClient = new HttpClient
+		{
+			Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+		};
+
 		async Task<VisitingLecturesList> getLecturesVisiting(int subjectId, int groupId)
 		{
-			var client = new HttpClient
-			{
-				Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
-			};
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_services.Preferences.AccessToken);
-
 			var link = $"{Servers.Current + Links.GetLecturesCalendarData}subjectId={subjectId}&groupId={groupId}";
-			var response = await client.GetAsync(link);
-			var result = await response.Content.ReadAsStringAsync();
+
+			using var request = new HttpRequestMessage(HttpMethod.Get, link);
+			request.Headers.Authorization = new AuthenticationHeaderValue(_services.Preferences.AccessToken);
+
+			// Reading and parsing off the UI thread.
+			using var response = await _lecturesClient.SendAsync(request).ConfigureAwait(false);
+			var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 			return JsonConvert.DeserializeObject<VisitingLecturesList>(result);
 		}
 

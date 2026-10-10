@@ -27,7 +27,19 @@ namespace EduCATS.MAUI
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 					fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				})
+				.ConfigureMauiHandlers(handlers =>
+				{
+#if IOS
+					// Tab bar is hidden for full-screen pages (conversations).
+					handlers.AddHandler(typeof(NavigationPage), typeof(EduCATS.MAUI.Platforms.iOS.TabBarAwareNavigationRenderer));
+#endif
 				});
+
+#if ANDROID
+			EduCATS.Helpers.Forms.Pages.TabBarVisibility.PlatformSetVisible =
+				EduCATS.MAUI.Platforms.Android.AndroidTabBar.SetVisible;
+#endif
 
 #if ANDROID
 			Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping(nameof(IEntry.Background), (handler, view) =>

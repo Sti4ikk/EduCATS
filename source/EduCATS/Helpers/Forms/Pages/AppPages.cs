@@ -273,8 +273,25 @@ namespace EduCATS.Helpers.Forms.Pages
 			}
 			else
 			{
-				await mainPage.Navigation.PushAsync(
-					getNavigationPage(newPage, title));
+				// Pushed as is, not wrapped into another NavigationPage:
+				// iOS shows a bar for each nested navigation page (two bars).
+				if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(newPage.Title))
+				{
+					newPage.Title = title;
+				}
+
+				// The bar with the back button and title is always shown for
+				// pushed pages (some of them hide it for themselves).
+				NavigationPage.SetHasNavigationBar(newPage, true);
+
+				// Hide the tabs before the animation, not after it (MainPageView
+				// updates the visibility once the page is pushed).
+				if (newPage is IHidesTabBar && rootPage is TabbedPage tabbedPage)
+				{
+					TabBarVisibility.PlatformSetVisible?.Invoke(tabbedPage, false);
+				}
+
+				await mainPage.Navigation.PushAsync(newPage);
 			}
 		}
 

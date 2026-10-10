@@ -13,6 +13,8 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 	{
 		const double _avatarSize = 50;
 
+		static readonly Base64ToImageSourceConverter _avatarConverter = new Base64ToImageSourceConverter();
+
 		static Thickness _padding = new Thickness(15, 10);
 
 		public GroupChatListViewCell()
@@ -47,7 +49,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				HeightRequest = _avatarSize
 			};
 
-			image.SetBinding(Image.SourceProperty, nameof(GroupChatModel.Img), converter: new Base64ToImageSourceConverter());
+			image.SetBinding(Image.SourceProperty, static (GroupChatModel g) => g.Img, converter: _avatarConverter);
 
 			return new Border
 			{
@@ -70,7 +72,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				LineBreakMode = LineBreakMode.TailTruncation
 			};
 
-			label.SetBinding(Label.TextProperty, nameof(GroupChatModel.DisplayName));
+			label.SetBinding(Label.TextProperty, static (GroupChatModel g) => g.DisplayName);
 			return label;
 		}
 	}

@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
+using Microsoft.Maui.Controls;
 using NUnit.Framework;
 using SkiaSharp;
 
@@ -150,6 +152,42 @@ namespace EduCATS.UnitTests.Chat
 			Assert.That(message.IsFailed, Is.True);
 			Assert.That(changed, Does.Contain(nameof(MessageItemModel.IsFailed)));
 			Assert.That(changed, Does.Contain(nameof(MessageItemModel.IsUploading)));
+		}
+
+		[Test]
+		public void FileNameOfUploadedFileTest()
+		{
+			var message = new MessageItemModel { IsFile = true, FileContent = "report.pdf", FileSize = "12 KB" };
+
+			Assert.That(message.HasInlineFile, Is.False);
+			Assert.That(message.FileName, Is.EqualTo("report.pdf"));
+			Assert.That(message.FileDisplayText, Is.EqualTo("report.pdf (12 KB)"));
+		}
+
+		[Test]
+		public void FileNameOfInlineFileTest()
+		{
+			// Old messages: the file itself (base64) and its name in the text.
+			var base64 = Convert.ToBase64String(new byte[1024]);
+			var message = new MessageItemModel { IsFile = true, Text = "lab1.docx", FileContent = base64, FileSize = "1 KB" };
+
+			Assert.That(message.HasInlineFile, Is.True);
+			Assert.That(message.FileName, Is.EqualTo("lab1.docx"));
+			Assert.That(message.FileDisplayText, Is.EqualTo("lab1.docx (1 KB)"));
+
+			message.Text = null;
+			Assert.That(message.FileName, Does.Not.Contain(base64));
+		}
+
+		[Test]
+		public void TabBarIsHiddenForFullScreenPagesTest()
+		{
+			Assert.That(TabBarVisibility.IsVisibleFor(new ContentPage()), Is.True);
+			Assert.That(TabBarVisibility.IsVisibleFor(new FullScreenPage()), Is.False);
+		}
+
+		class FullScreenPage : ContentPage, IHidesTabBar
+		{
 		}
 	}
 }

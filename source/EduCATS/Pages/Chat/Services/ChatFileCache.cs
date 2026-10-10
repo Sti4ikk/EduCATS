@@ -38,7 +38,40 @@ namespace EduCATS.Pages.Chat.Services
 			}
 
 			var bytes = await ChatApiService.DownloadFile(chatId, fileName);
+			return await saveAsync(path, bytes);
+		}
 
+		/// <summary>
+		/// Get the cached file or save it from the message itself
+		/// (old messages carry the file as base64).
+		/// </summary>
+		/// <returns>Local path, or <c>null</c> if the content is broken.</returns>
+		public static async Task<string> GetOrSaveInlineAsync(int chatId, bool isGroup, string fileName, string base64)
+		{
+			var path = GetPath(chatId, isGroup, fileName);
+
+			if (File.Exists(path) && new FileInfo(path).Length > 0)
+			{
+				return path;
+			}
+
+			byte[] bytes;
+
+			try
+			{
+				bytes = Convert.FromBase64String(base64);
+			}
+			catch (FormatException ex)
+			{
+				AppLogs.Log(ex);
+				return null;
+			}
+
+			return await saveAsync(path, bytes);
+		}
+
+		static async Task<string> saveAsync(string path, byte[] bytes)
+		{
 			if (bytes == null)
 			{
 				return null;

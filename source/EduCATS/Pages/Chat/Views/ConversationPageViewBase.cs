@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EduCATS.Controls;
 using EduCATS.Helpers.Forms.Converters;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Helpers.Logs;
 using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
@@ -16,6 +17,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using Nyxbull.Plugins.CrossLocalization;
 
@@ -28,7 +30,7 @@ namespace EduCATS.Pages.Chat.Views
 	/// Derived pages call <see cref="InitializeView"/> at the end of their
 	/// constructor (after their own fields are set).
 	/// </remarks>
-	public abstract class ConversationPageViewBase : ContentPage
+	public abstract class ConversationPageViewBase : ContentPage, IHidesTabBar
 	{
 		/// <summary>
 		/// Older messages start loading when one of the first items is visible.
@@ -53,6 +55,13 @@ namespace EduCATS.Pages.Chat.Views
 			ViewModel = viewModel;
 			BindingContext = viewModel;
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
+
+			// iOS: the input row stays above the keyboard and the home indicator
+			// (Android resizes the window for the keyboard itself).
+			if (DeviceInfo.Platform == DevicePlatform.iOS)
+			{
+				SafeAreaEdges = SafeAreaEdges.All;
+			}
 
 			viewModel.HistoryLoaded += onHistoryLoaded;
 			viewModel.MessageAppended += onMessageAppended;
@@ -216,7 +225,9 @@ namespace EduCATS.Pages.Chat.Views
 			{
 				ItemTemplate = new ConversationTemplateSelector
 				{
-					MessageTemplate = new DataTemplate(createMessageCell),
+					TextMessageTemplate = new DataTemplate(() => createMessageCell(createTextContent())),
+					ImageMessageTemplate = new DataTemplate(() => createMessageCell(createImageContent())),
+					FileMessageTemplate = new DataTemplate(() => createMessageCell(createFileChip(), createUploadProgress())),
 					DateSeparatorTemplate = new DataTemplate(createDateSeparatorCell)
 				},
 				SelectionMode = SelectionMode.None,
@@ -228,6 +239,7 @@ namespace EduCATS.Pages.Chat.Views
 
 			_list.SetBinding(ItemsView.ItemsSourceProperty, nameof(ConversationViewModelBase.Messages));
 			_list.Scrolled += onListScrolled;
+			_list.SizeChanged += onListSizeChanged;
 
 			var root = new Grid
 			{
@@ -312,7 +324,7 @@ namespace EduCATS.Pages.Chat.Views
 				HorizontalOptions = LayoutOptions.Center
 			};
 
-			label.SetBinding(Label.TextProperty, nameof(DateSeparatorModel.DisplayText));
+			label.SetBinding(Label.TextProperty, static (DateSeparatorModel d) => d.DisplayText);
 
 			return new StackLayout
 			{
@@ -321,26 +333,50 @@ namespace EduCATS.Pages.Chat.Views
 			};
 		}
 
-		View createMessageCell()
+		// Shared by all cells: converters keep no state.
+		static readonly MessageTextToFormattedStringConverter _linksConverter = new MessageTextToFormattedStringConverter();
+		static readonly MessageImageSourceConverter _imageConverter = new MessageImageSourceConverter();
+		static readonly BoolToBubbleColorConverter _bubbleColorConverter = new BoolToBubbleColorConverter();
+		static readonly BoolToAlignmentConverter _alignmentConverter = new BoolToAlignmentConverter();
+		static readonly MessageStatusToGlyphConverter _statusConverter = new MessageStatusToGlyphConverter();
+
+		/// <summary>
+		/// Text and its link preview.
+		/// </summary>
+		View[] createTextContent()
 		{
+			// Plain text for most messages: spans (FormattedText) are much
+			// slower to lay out, so they're used only for messages with links.
 			var textLabel = new Label
 			{
 				LineBreakMode = LineBreakMode.WordWrap,
 				FontSize = 15
 			};
 
-			textLabel.SetBinding(Label.FormattedTextProperty, new Binding(
-				nameof(MessageItemModel.Text), converter: new MessageTextToFormattedStringConverter()));
-			textLabel.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsPlainText));
+			textLabel.SetBinding(Label.TextProperty, static (MessageItemModel m) => m.Text);
+			textLabel.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.HasNoLinks);
 
+			var linksLabel = new Label
+			{
+				LineBreakMode = LineBreakMode.WordWrap,
+				FontSize = 15
+			};
+
+			linksLabel.SetBinding(Label.FormattedTextProperty, static (MessageItemModel m) => m.Text, converter: _linksConverter);
+			linksLabel.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.HasLinks);
+
+			return new View[] { textLabel, linksLabel, createLinkPreview() };
+		}
+
+		View[] createImageContent()
+		{
 			var attachmentImage = new Image
 			{
 				HeightRequest = 160,
 				Aspect = Aspect.AspectFit
 			};
 
-			attachmentImage.SetBinding(Image.SourceProperty, new Binding(".", converter: new MessageImageSourceConverter()));
-			attachmentImage.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsImageMessage));
+			attachmentImage.SetBinding(Image.SourceProperty, new Binding(".", converter: _imageConverter));
 
 			var imageTap = new TapGestureRecognizer();
 			imageTap.Tapped += async (sender, e) =>
@@ -352,25 +388,27 @@ namespace EduCATS.Pages.Chat.Views
 			};
 			attachmentImage.GestureRecognizers.Add(imageTap);
 
-			var fileChip = createFileChip();
+			return new View[] { attachmentImage, createUploadProgress() };
+		}
 
+		static View createUploadProgress()
+		{
 			var uploadProgress = new ProgressBar { Margin = new Thickness(0, 4) };
-			uploadProgress.SetBinding(ProgressBar.ProgressProperty, nameof(MessageItemModel.UploadProgress));
-			uploadProgress.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsUploading));
+			uploadProgress.SetBinding(ProgressBar.ProgressProperty, static (MessageItemModel m) => m.UploadProgress);
+			uploadProgress.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.IsUploading);
+			return uploadProgress;
+		}
 
-			var contentStack = new VerticalStackLayout
+		View createMessageCell(params View[] content)
+		{
+			var contentStack = new VerticalStackLayout { Spacing = 2 };
+
+			foreach (var view in content)
 			{
-				Spacing = 2,
-				Children =
-				{
-					textLabel,
-					createLinkPreview(),
-					attachmentImage,
-					fileChip,
-					uploadProgress,
-					createTimeRow()
-				}
-			};
+				contentStack.Children.Add(view);
+			}
+
+			contentStack.Children.Add(createTimeRow());
 
 			var bubble = new Border
 			{
@@ -381,8 +419,7 @@ namespace EduCATS.Pages.Chat.Views
 				Content = contentStack
 			};
 
-			bubble.SetBinding(Border.BackgroundColorProperty, new Binding(
-				nameof(MessageItemModel.IsMine), converter: new BoolToBubbleColorConverter()));
+			bubble.SetBinding(Border.BackgroundColorProperty, static (MessageItemModel m) => m.IsMine, converter: _bubbleColorConverter);
 
 			var cell = new VerticalStackLayout
 			{
@@ -390,8 +427,7 @@ namespace EduCATS.Pages.Chat.Views
 				Children = { bubble, createRetryLabel() }
 			};
 
-			cell.SetBinding(View.HorizontalOptionsProperty, new Binding(
-				nameof(MessageItemModel.IsMine), converter: new BoolToAlignmentConverter()));
+			cell.SetBinding(View.HorizontalOptionsProperty, static (MessageItemModel m) => m.IsMine, converter: _alignmentConverter);
 
 			return cell;
 		}
@@ -407,7 +443,7 @@ namespace EduCATS.Pages.Chat.Views
 			};
 
 			image.SetBinding(Image.SourceProperty, nameof(LinkPreviewModel.ImageUrl));
-			image.SetBinding(IsVisibleProperty, nameof(LinkPreviewModel.HasImage));
+			image.SetBinding(IsVisibleProperty, static (LinkPreviewModel p) => p.HasImage);
 
 			var title = new Label
 			{
@@ -416,7 +452,7 @@ namespace EduCATS.Pages.Chat.Views
 				MaxLines = 2,
 				LineBreakMode = LineBreakMode.TailTruncation
 			};
-			title.SetBinding(Label.TextProperty, nameof(LinkPreviewModel.Title));
+			title.SetBinding(Label.TextProperty, static (LinkPreviewModel p) => p.Title);
 
 			var description = new Label
 			{
@@ -425,11 +461,11 @@ namespace EduCATS.Pages.Chat.Views
 				LineBreakMode = LineBreakMode.TailTruncation,
 				TextColor = _secondaryTextColor
 			};
-			description.SetBinding(Label.TextProperty, nameof(LinkPreviewModel.Description));
-			description.SetBinding(IsVisibleProperty, nameof(LinkPreviewModel.HasDescription));
+			description.SetBinding(Label.TextProperty, static (LinkPreviewModel p) => p.Description);
+			description.SetBinding(IsVisibleProperty, static (LinkPreviewModel p) => p.HasDescription);
 
 			var host = new Label { FontSize = 11, TextColor = _secondaryTextColor };
-			host.SetBinding(Label.TextProperty, nameof(LinkPreviewModel.Host));
+			host.SetBinding(Label.TextProperty, static (LinkPreviewModel p) => p.Host);
 
 			var grid = new Grid
 			{
@@ -468,7 +504,7 @@ namespace EduCATS.Pages.Chat.Views
 			card.GestureRecognizers.Add(tap);
 
 			var wrapper = new ContentView { Content = card };
-			wrapper.SetBinding(IsVisibleProperty, nameof(MessageItemModel.HasLinkPreview));
+			wrapper.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.HasLinkPreview);
 			return wrapper;
 		}
 
@@ -480,7 +516,7 @@ namespace EduCATS.Pages.Chat.Views
 				LineBreakMode = LineBreakMode.WordWrap,
 				VerticalOptions = LayoutOptions.Center
 			};
-			fileNameLabel.SetBinding(Label.TextProperty, nameof(MessageItemModel.FileDisplayText));
+			fileNameLabel.SetBinding(Label.TextProperty, static (MessageItemModel m) => m.FileDisplayText);
 
 			var fileIcon = new Image
 			{
@@ -504,7 +540,6 @@ namespace EduCATS.Pages.Chat.Views
 
 			fileChip.Add(fileIcon, 0, 0);
 			fileChip.Add(fileNameLabel, 1, 0);
-			fileChip.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsFileMessage));
 
 			var fileTap = new TapGestureRecognizer();
 			fileTap.Tapped += async (sender, e) =>
@@ -521,13 +556,11 @@ namespace EduCATS.Pages.Chat.Views
 		View createTimeRow()
 		{
 			var timeLabel = new Label { FontSize = 11, Opacity = 0.6 };
-			timeLabel.SetBinding(Label.TextProperty, new Binding(
-				nameof(MessageItemModel.LocalTime), stringFormat: "{0:HH:mm}"));
+			timeLabel.SetBinding(Label.TextProperty, static (MessageItemModel m) => m.LocalTime, stringFormat: "{0:HH:mm}");
 
 			var statusLabel = new Label { FontSize = 11, Opacity = 0.7 };
-			statusLabel.SetBinding(Label.TextProperty, new Binding(
-				nameof(MessageItemModel.Status), converter: new MessageStatusToGlyphConverter()));
-			statusLabel.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsMine));
+			statusLabel.SetBinding(Label.TextProperty, static (MessageItemModel m) => m.Status, converter: _statusConverter);
+			statusLabel.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.IsMine);
 
 			return new HorizontalStackLayout
 			{
@@ -548,7 +581,7 @@ namespace EduCATS.Pages.Chat.Views
 				Padding = new Thickness(4, 2)
 			};
 
-			retryLabel.SetBinding(IsVisibleProperty, nameof(MessageItemModel.IsFailed));
+			retryLabel.SetBinding(IsVisibleProperty, static (MessageItemModel m) => m.IsFailed);
 
 			var retryTap = new TapGestureRecognizer();
 			retryTap.Tapped += async (sender, e) =>
@@ -565,6 +598,13 @@ namespace EduCATS.Pages.Chat.Views
 		void onListScrolled(object sender, ItemsViewScrolledEventArgs e)
 		{
 			_lastVisibleIndex = e.LastVisibleItemIndex;
+
+			// Only real scrolling: a resize (keyboard) reports no movement
+			// and must not unpin the list from the bottom.
+			if (!ViewModel.IsSearching && e.VerticalDelta != 0)
+			{
+				_isAtBottom = isLastItemVisible();
+			}
 
 			if (!ViewModel.IsSearching &&
 				e.VerticalDelta < 0 &&
@@ -586,9 +626,45 @@ namespace EduCATS.Pages.Chat.Views
 			var count = ViewModel.Messages.Count;
 
 			// Don't pull the user away from older messages they are reading.
-			if (isMine || _lastVisibleIndex >= count - 1 - _nearBottomItems)
+			if (!isMine && _lastVisibleIndex < count - 1 - _nearBottomItems)
 			{
-				Dispatcher.Dispatch(() => scrollTo(ViewModel.Messages.LastOrDefault(), ScrollToPosition.End, animate: true));
+				return;
+			}
+
+			_isAtBottom = true;
+			Dispatcher.Dispatch(() => scrollTo(ViewModel.Messages.LastOrDefault(), ScrollToPosition.End, animate: true));
+
+			// The list may change its size right after sending (the keyboard
+			// hides after the "send" key) and stop the scrolling halfway:
+			// check again once the layout is settled.
+			Dispatcher.DispatchDelayed(_settleDelay, () =>
+			{
+				if (!ViewModel.IsSearching && !isLastItemVisible())
+				{
+					scrollToBottom();
+				}
+			});
+		}
+
+		/// <summary>
+		/// Time for the keyboard and the list layout to settle.
+		/// </summary>
+		static readonly TimeSpan _settleDelay = TimeSpan.FromMilliseconds(350);
+
+		/// <summary>
+		/// Is the newest message on screen: the list then stays at the bottom
+		/// when its size changes (keyboard shown or hidden).
+		/// </summary>
+		bool _isAtBottom = true;
+
+		bool isLastItemVisible() =>
+			_lastVisibleIndex >= ViewModel.Messages.Count - 1;
+
+		void onListSizeChanged(object sender, EventArgs e)
+		{
+			if (_isAtBottom && !ViewModel.IsSearching)
+			{
+				Dispatcher.Dispatch(scrollToBottom);
 			}
 		}
 
@@ -662,7 +738,9 @@ namespace EduCATS.Pages.Chat.Views
 			{
 				var path = !string.IsNullOrEmpty(message.LocalFilePath) && File.Exists(message.LocalFilePath) ?
 					message.LocalFilePath :
-					await ChatFileCache.GetOrDownloadAsync(message.ChatId, message.IsGroupChat, message.FileContent);
+					message.HasInlineFile ?
+						await ChatFileCache.GetOrSaveInlineAsync(message.ChatId, message.IsGroupChat, message.FileName, message.FileContent) :
+						await ChatFileCache.GetOrDownloadAsync(message.ChatId, message.IsGroupChat, message.FileContent);
 
 				if (path == null)
 				{

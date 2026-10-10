@@ -27,7 +27,9 @@ namespace EduCATS.Data
 		/// <returns>Object with error details.</returns>
 		public async static Task<DataResult<T>> GetSingleData<T>(IDataAccess<T> dataAccess)
 		{
-			var data = await dataAccess.GetSingle();
+			// Off the UI thread: parsing, JSON validation and caching to disk
+			// of big responses made the UI stutter.
+			var data = await Task.Run(dataAccess.GetSingle);
 			return CreateResult(data, dataAccess);
 		}
 
@@ -39,7 +41,7 @@ namespace EduCATS.Data
 		/// <returns>Objects list with error details.</returns>
 		public async static Task<DataResult<List<T>>> GetListData<T>(IDataAccess<T> dataAccess)
 		{
-			var data = await dataAccess.GetList();
+			var data = await Task.Run(dataAccess.GetList);
 			return CreateResult(data, dataAccess);
 		}
 

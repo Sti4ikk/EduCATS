@@ -125,12 +125,12 @@ namespace EduCATS.Networking
 		{
 			if (httpMethod == HttpMethod.Get)
 			{
-				return await get();
+				return await get().ConfigureAwait(false);
 			}
 
 			if (httpMethod == HttpMethod.Post)
 			{
-				return await post();
+				return await post().ConfigureAwait(false);
 			}
 
 			return null;
@@ -181,7 +181,7 @@ namespace EduCATS.Networking
 
 				AppLogs.Log($"{methodName} {Uri}", methodName);
 
-				var response = await _client.SendAsync(request);
+				var response = await _client.SendAsync(request).ConfigureAwait(false);
 				AppLogs.Log($"{methodName} {Uri} -> {(int)response.StatusCode}", methodName);
 
 				if (response.StatusCode == HttpStatusCode.Unauthorized)

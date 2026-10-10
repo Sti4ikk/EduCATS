@@ -33,9 +33,17 @@ namespace EduCATS.Pages.Chat.Views
 
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
+			var parts = MessageLinkParser.Split(value as string);
+
+			// Text without links is shown by a plain label.
+			if (!parts.Exists(p => p.IsLink))
+			{
+				return null;
+			}
+
 			var formatted = new FormattedString();
 
-			foreach (var part in MessageLinkParser.Split(value as string))
+			foreach (var part in parts)
 			{
 				var span = new Span { Text = part.Text };
 

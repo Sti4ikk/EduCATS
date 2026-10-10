@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Pages.Chat.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -7,7 +8,7 @@ using Nyxbull.Plugins.CrossLocalization;
 
 namespace EduCATS.Pages.Chat.Views
 {
-	public partial class CallPage : ContentPage
+	public partial class CallPage : ContentPage, IHidesTabBar
 	{
 		readonly int _chatId;
 
