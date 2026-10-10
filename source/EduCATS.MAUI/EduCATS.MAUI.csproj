@@ -2,6 +2,8 @@
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+		<!-- CI builds one platform (-p:OnlyTargetFramework=net10.0-android): restore then needs only its workload. -->
+		<TargetFrameworks Condition="'$(OnlyTargetFramework)' != ''">$(OnlyTargetFramework)</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>EduCATS.MAUI</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -32,6 +34,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.71" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.71" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
+		<PackageReference Include="Sentry.Maui" Version="6.12.0" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.4" />
 		<PackageReference Include="Syncfusion.Maui.Core" Version="33.2.13" />
 		<PackageReference Include="Syncfusion.Maui.Charts" Version="33.2.13" />
@@ -39,4 +42,48 @@
 	<ItemGroup>
 		<ProjectReference Include="..\EduCATS\EduCATS.csproj" />
 	</ItemGroup>
+
+	<!--
+		Crash reporting: Sentry DSN is passed at build time
+		(dotnet build -p:SentryDsn=https://...), never committed.
+		Without it Sentry is disabled and nothing is sent.
+	-->
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>SentryDsn</_Parameter1>
+			<_Parameter2>$(SentryDsn)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<!--
+		Android Auto Backup / device transfer must not copy SecureStorage
+		(it keeps the access token): its encryption keys stay in the device
+		Keystore, so restored data can't be decrypted.
+		SecureStorage file name depends on ApplicationId, so the rules are
+		generated at build time (referenced from AndroidManifest.xml as
+		@xml/backup_rules and @xml/data_extraction_rules).
+	-->
+	<Target Name="GenerateAndroidBackupRules" BeforeTargets="_ComputeAndroidResourcePaths" Condition="'$(TargetPlatformIdentifier)' == 'android'">
+		<PropertyGroup>
+			<_BackupRulesDir>$(IntermediateOutputPath)backuprules\</_BackupRulesDir>
+			<_SecureStorageExclude>&lt;exclude domain="sharedpref" path="$(ApplicationId).microsoft.maui.essentials.preferences.xml" /&gt;</_SecureStorageExclude>
+		</PropertyGroup>
+		<ItemGroup>
+			<_BackupRulesLine Include="&lt;full-backup-content&gt;" />
+			<_BackupRulesLine Include="$(_SecureStorageExclude)" />
+			<_BackupRulesLine Include="&lt;/full-backup-content&gt;" />
+
+			<_DataExtractionRulesLine Include="&lt;data-extraction-rules&gt;" />
+			<_DataExtractionRulesLine Include="&lt;cloud-backup&gt;$(_SecureStorageExclude)&lt;/cloud-backup&gt;" />
+			<_DataExtractionRulesLine Include="&lt;device-transfer&gt;$(_SecureStorageExclude)&lt;/device-transfer&gt;" />
+			<_DataExtractionRulesLine Include="&lt;/data-extraction-rules&gt;" />
+		</ItemGroup>
+		<WriteLinesToFile File="$(_BackupRulesDir)backup_rules.xml" Lines="@(_BackupRulesLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+		<WriteLinesToFile File="$(_BackupRulesDir)data_extraction_rules.xml" Lines="@(_DataExtractionRulesLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+		<ItemGroup>
+			<AndroidResource Include="$(_BackupRulesDir)backup_rules.xml" LogicalName="xml\backup_rules.xml" />
+			<AndroidResource Include="$(_BackupRulesDir)data_extraction_rules.xml" LogicalName="xml\data_extraction_rules.xml" />
+			<FileWrites Include="$(_BackupRulesDir)backup_rules.xml;$(_BackupRulesDir)data_extraction_rules.xml" />
+		</ItemGroup>
+	</Target>
 </Project>

@@ -18,7 +18,7 @@ namespace EduCATS.Themes.Templates
 		override public string BaseActivityIndicatorColorIOS => _whiteColor;
 		override public string BaseActivityIndicatorColorAndroid => _blackColor;
 		override public string BasePickerTextColor => _whiteColor;
-		override public string BaseHeadphonesIcon => "icon_headphones_light";
+		override public string BaseHeadphonesIcon => "icon_headphones_light.png";
 		override public string BaseNoDataTextColor => _whiteColor;
 
 		override public string AppBackgroundColor => _blackColor;
@@ -27,10 +27,10 @@ namespace EduCATS.Themes.Templates
 
 		override public string RoundedListViewBackgroundColor => _baseDarkColor;
 
-		override public string LoginBackground1Image => "image_background_1_dark";
-		override public string LoginBackground2Image => "image_background_2_dark";
-		override public string LoginBackground3Image => "image_background_3_dark";
-		override public string LoginShowPasswordImage => "icon_show_password_dark";
+		override public string LoginBackground1Image => "image_background_1_dark.jpg";
+		override public string LoginBackground2Image => "image_background_2_dark.jpg";
+		override public string LoginBackground3Image => "image_background_3_dark.jpg";
+		override public string LoginShowPasswordImage => "icon_show_password_dark.png";
 		override public string LoginButtonBackgroundColor => _baseDarkColor;
 
 		override public string MainSelectedTabColor => "#27AEE1";
@@ -74,7 +74,7 @@ namespace EduCATS.Themes.Templates
 		override public string StatisticsDetailsNameColor => _whiteColor;
 		override public string SettingsTitleColor => _whiteColor;
 
-		override public string SettingsLogoutIcon => "icon_settings_logout_dark";
+		override public string SettingsLogoutIcon => "icon_settings_logout_dark.png";
 		override public string SettingsGroupUserColor => _whiteColor;
 		override public string SettingsProfileColor => _blackColor;
 		override public string SettingsProfileLabelColor => _greyColor;

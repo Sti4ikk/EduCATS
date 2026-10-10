@@ -1,4 +1,5 @@
 ﻿using Controls.UserDialogs.Maui;
+using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Effects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Compatibility.Hosting;
@@ -26,7 +27,19 @@ namespace EduCATS.MAUI
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 					fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				})
+				.ConfigureMauiHandlers(handlers =>
+				{
+#if IOS
+					// Tab bar is hidden for full-screen pages (conversations).
+					handlers.AddHandler(typeof(NavigationPage), typeof(EduCATS.MAUI.Platforms.iOS.TabBarAwareNavigationRenderer));
+#endif
 				});
+
+#if ANDROID
+			EduCATS.Helpers.Forms.Pages.TabBarVisibility.PlatformSetVisible =
+				EduCATS.MAUI.Platforms.Android.AndroidTabBar.SetVisible;
+#endif
 
 #if ANDROID
 			Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping(nameof(IEntry.Background), (handler, view) =>
@@ -44,7 +57,52 @@ namespace EduCATS.MAUI
 #if DEBUG
 			builder.Logging.AddDebug();
 #endif
-			return builder.Build();
+			PlatformServices.Register(builder.Services);
+			builder.UseSentry(configureCrashReporting);
+
+			var app = builder.Build();
+			PlatformServices.SetServiceProvider(app.Services);
+			return app;
+		}
+
+		/// <summary>
+		/// Crash reporting with Sentry.
+		/// </summary>
+		/// <remarks>
+		/// The DSN comes from the build (-p:SentryDsn=...). An empty DSN disables
+		/// Sentry: crashes are then only written to the local app log.
+		/// </remarks>
+		static void configureCrashReporting(Sentry.Maui.SentryMauiOptions options)
+		{
+			options.Dsn = getBuildMetadata("SentryDsn") ?? string.Empty;
+			options.Release = $"educats@{AppInfo.Current.VersionString}";
+			options.Environment =
+#if DEBUG
+				"debug";
+#else
+				"production";
+#endif
+			// No user data: names, tokens and message texts must not leave the device.
+			options.SendDefaultPii = false;
+			options.AttachScreenshot = false;
+			options.IncludeTextInBreadcrumbs = false;
+			options.IncludeTitleInBreadcrumbs = false;
+		}
+
+		static string getBuildMetadata(string key)
+		{
+			foreach (var attribute in typeof(MauiProgram).Assembly
+				.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false))
+			{
+				var metadata = (System.Reflection.AssemblyMetadataAttribute)attribute;
+
+				if (metadata.Key == key && !string.IsNullOrWhiteSpace(metadata.Value))
+				{
+					return metadata.Value;
+				}
+			}
+
+			return null;
 		}
 	}
 }

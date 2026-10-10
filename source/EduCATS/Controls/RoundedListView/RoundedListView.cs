@@ -1,7 +1,6 @@
 using EduCATS.Controls.RoundedListView.Selectors;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Styles;
-using EduCATS.Pages.Today.Base.Views.ViewCells;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -10,16 +9,24 @@ using Microsoft.Maui.Devices;
 using Microsoft.Maui.Graphics;
 using Nyxbull.Plugins.CrossLocalization;
 using System;
+using System.Collections;
 using System.Linq;
-using System.Runtime.CompilerServices;
-
+using System.Windows.Input;
 
 namespace EduCATS.Controls.RoundedListView
 {
 	/// <summary>
 	/// Rounded list view.
 	/// </summary>
-	public class RoundedListView : ListView
+	/// <remarks>
+	/// Built on <see cref="CollectionView"/> (the old <see cref="ListView"/> is
+	/// deprecated and slower) with pull-to-refresh by <see cref="RefreshView"/>.
+	/// Keeps the ListView-like API used by the pages: <see cref="ItemsSource"/>,
+	/// <see cref="SelectedItem"/>, <see cref="IsRefreshing"/>,
+	/// <see cref="RefreshCommand"/> and <see cref="ItemTapped"/>.
+	/// Cells are still <see cref="ViewCell"/>s (see <see cref="CellTemplates"/>).
+	/// </remarks>
+	public class RoundedListView : ContentView
 	{
 		/// <summary>
 		/// Base spacing.
@@ -41,19 +48,74 @@ namespace EduCATS.Controls.RoundedListView
 		/// </summary>
 		readonly StackLayout _emptyView;
 
-		/// <summary>
-		/// Rounded header height.
-		/// </summary>
+		readonly CollectionView _collectionView;
+		readonly RefreshView _refreshView;
+
 		public const double HeaderHeight = 14;
 
+		public static readonly BindableProperty ItemsSourceProperty = BindableProperty.Create(
+			nameof(ItemsSource), typeof(IEnumerable), typeof(RoundedListView),
+			propertyChanged: (bindable, oldValue, newValue) => ((RoundedListView)bindable).onItemsSourceChanged());
+
+		public static readonly BindableProperty SelectedItemProperty = BindableProperty.Create(
+			nameof(SelectedItem), typeof(object), typeof(RoundedListView), defaultBindingMode: BindingMode.TwoWay,
+			propertyChanged: (bindable, oldValue, newValue) => ((RoundedListView)bindable)._collectionView.SelectedItem = newValue);
+
+		public static readonly BindableProperty IsRefreshingProperty = BindableProperty.Create(
+			nameof(IsRefreshing), typeof(bool), typeof(RoundedListView), defaultBindingMode: BindingMode.TwoWay,
+			propertyChanged: (bindable, oldValue, newValue) => ((RoundedListView)bindable)._refreshView.IsRefreshing = (bool)newValue);
+
+		public static readonly BindableProperty RefreshCommandProperty = BindableProperty.Create(
+			nameof(RefreshCommand), typeof(ICommand), typeof(RoundedListView),
+			propertyChanged: (bindable, oldValue, newValue) => ((RoundedListView)bindable)._refreshView.Command = (ICommand)newValue);
+
+		public IEnumerable ItemsSource
+		{
+			get => (IEnumerable)GetValue(ItemsSourceProperty);
+			set => SetValue(ItemsSourceProperty, value);
+		}
+
+		public object SelectedItem
+		{
+			get => GetValue(SelectedItemProperty);
+			set => SetValue(SelectedItemProperty, value);
+		}
+
+		public bool IsRefreshing
+		{
+			get => (bool)GetValue(IsRefreshingProperty);
+			set => SetValue(IsRefreshingProperty, value);
+		}
+
+		public ICommand RefreshCommand
+		{
+			get => (ICommand)GetValue(RefreshCommandProperty);
+			set => SetValue(RefreshCommandProperty, value);
+		}
+
 		/// <summary>
-		/// Constructor.
+		/// Is pull-to-refresh enabled.
 		/// </summary>
-		/// <param name="type">View cell type.</param>
-		/// <param name="checkbox">Is template checkbox.</param>
-		/// <param name="header">Header view.</param>
-		/// <param name="headerTopPadding">Header top padding.</param>
-		/// <param name="footerBottomPadding">Footer bottom padding.</param>
+		/// <remarks>
+		/// Not <c>IsEnabled</c>: it disables the whole list content (labels turn
+		/// grey, entries and switches stop working), only the gesture is turned off.
+		/// </remarks>
+		public bool IsPullToRefreshEnabled
+		{
+			get => _refreshView.IsRefreshEnabled;
+			set => _refreshView.IsRefreshEnabled = value;
+		}
+
+		/// <summary>
+		/// An item is tapped (raised after <see cref="SelectedItem"/> is set).
+		/// </summary>
+		public event EventHandler<ItemTappedEventArgs> ItemTapped;
+
+		/// <summary>
+		/// Selected item changed.
+		/// </summary>
+		public event EventHandler<SelectedItemChangedEventArgs> ItemSelected;
+
 		public RoundedListView(
 			Type type,
 			bool checkbox = false,
@@ -63,36 +125,68 @@ namespace EduCATS.Controls.RoundedListView
 			Func<object> func = null,
 			IPlatformServices services = null)
 		{
-			HasUnevenRows = true;
-
-			if ((type == typeof(SubjectPageViewCell) || type == typeof(CalendarSubjectsViewCell)) && services is not null && services.Preferences.IsLargeFont) HasUnevenRows = false;
-
-			ItemTemplate = func == null ?
-				new RoundedListTemplateSelector(type, checkbox) :
-				new RoundedListTemplateSelector(func, checkbox);
-
-			SeparatorVisibility = SeparatorVisibility.None;
-			VerticalScrollBarVisibility = ScrollBarVisibility.Never;
-			HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
-			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			RefreshControlColor = Color.FromArgb(
-				DeviceInfo.Platform == DevicePlatform.Android ?
-					Theme.Current.BaseActivityIndicatorColorAndroid :
-					Theme.Current.BaseActivityIndicatorColorIOS);
-
 			_capHeight = HeaderHeight / 2;
 			_emptyView = createEmptyView();
 
-			Footer = createFooterCap(footerBottomPadding);
-			Header = createHeader(header, headerTopPadding);
+			_collectionView = new CollectionView
+			{
+				ItemTemplate = CellTemplates.Adapt(func == null ?
+					new RoundedListTemplateSelector(type, checkbox) :
+					new RoundedListTemplateSelector(func, checkbox)),
+				SelectionMode = SelectionMode.Single,
+				VerticalScrollBarVisibility = ScrollBarVisibility.Never,
+				HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
+				Header = createHeader(header, headerTopPadding),
+				Footer = createFooterCap(footerBottomPadding)
+			};
+
+			_collectionView.SelectionChanged += onSelectionChanged;
+
+			_refreshView = new RefreshView
+			{
+				IsRefreshEnabled = false,
+				RefreshColor = Color.FromArgb(
+					DeviceInfo.Platform == DevicePlatform.Android ?
+						Theme.Current.BaseActivityIndicatorColorAndroid :
+						Theme.Current.BaseActivityIndicatorColorIOS),
+				Content = _collectionView
+			};
+
+			// Pulling sets IsRefreshing on the RefreshView: pass it to the binding.
+			_refreshView.PropertyChanged += (sender, e) =>
+			{
+				if (e.PropertyName == RefreshView.IsRefreshingProperty.PropertyName &&
+					IsRefreshing != _refreshView.IsRefreshing)
+				{
+					IsRefreshing = _refreshView.IsRefreshing;
+				}
+			};
+
+			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
+			Content = _refreshView;
 		}
 
 		/// <summary>
-		/// Create header layout.
+		/// Scroll to an item.
 		/// </summary>
-		/// <param name="view">View to add to header.</param>
-		/// <param name="topPadding">Header top padding.</param>
-		/// <returns>Header layout.</returns>
+		public void ScrollTo(object item, ScrollToPosition position, bool animated) =>
+			_collectionView.ScrollTo(item, position: position, animate: animated);
+
+		void onSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			var item = e.CurrentSelection.FirstOrDefault();
+			var previous = SelectedItem;
+
+			SelectedItem = item;
+			ItemSelected?.Invoke(this, new SelectedItemChangedEventArgs(item, -1));
+
+			if (item != null && !Equals(item, previous))
+			{
+				ItemTapped?.Invoke(this, new ItemTappedEventArgs(null, item, -1));
+			}
+		}
+
 		StackLayout createHeader(View view, double topPadding = 0)
 		{
 			var cap = createHeaderCap();
@@ -112,10 +206,6 @@ namespace EduCATS.Controls.RoundedListView
 			return header;
 		}
 
-		/// <summary>
-		/// Create header cap.
-		/// </summary>
-		/// <returns>Header cap.</returns>
 		Grid createHeaderCap()
 		{
 			var stackLayout = new StackLayout {
@@ -143,11 +233,6 @@ namespace EduCATS.Controls.RoundedListView
 			};
 		}
 
-		/// <summary>
-		/// Create footer cap.
-		/// </summary>
-		/// <param name="bottomPadding">Footer bottom padding.</param>
-		/// <returns>Footer cap.</returns>
 		Grid createFooterCap(double bottomPadding)
 		{
 			var stackLayout = new StackLayout {
@@ -177,10 +262,6 @@ namespace EduCATS.Controls.RoundedListView
 			};
 		}
 
-		/// <summary>
-		/// Create empty view.
-		/// </summary>
-		/// <returns>Empty view layout.</returns>
 		StackLayout createEmptyView()
 		{
 			return new StackLayout {
@@ -198,27 +279,15 @@ namespace EduCATS.Controls.RoundedListView
 			};
 		}
 
-		/// <summary>
-		/// On <c>ItemsSource</c> property changed.
-		/// </summary>
-		/// <param name="propertyName">Property name.</param>
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		void onItemsSourceChanged()
 		{
-			base.OnPropertyChanged(propertyName);
-
-			if (!propertyName.Equals("ItemsSource")) {
-				return;
-			}
+			_collectionView.ItemsSource = ItemsSource;
 
 			try {
-				if (ItemsSource == null || ItemsSource.Cast<object>().Count() == 0) {
-					_emptyView.IsVisible = true;
-					return;
-				}
-			} catch (Exception) { }
-
-			_emptyView.IsVisible = false;
+				_emptyView.IsVisible = ItemsSource == null || !ItemsSource.Cast<object>().Any();
+			} catch (Exception) {
+				_emptyView.IsVisible = false;
+			}
 		}
 	}
 }
-

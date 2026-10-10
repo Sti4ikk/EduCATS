@@ -263,7 +263,7 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 				return;
 			}
 
-			var modules = await DataAccess.GetSubjectModules(CurrentSubject.Id);
+			var modules = (await DataAccess.GetSubjectModules(CurrentSubject.Id)).Data;
 			if (modules?.Count > 0)
 			{
 				var enabledModuleTypes = new HashSet<int>(
@@ -281,13 +281,13 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 			// Fallback for environments where modules are unavailable.
 			IsTests = true;
 
-			var dataPract = await DataAccess.GetPracticals(CurrentSubject.Id);
+			var dataPract = (await DataAccess.GetPracticals(CurrentSubject.Id)).Data;
 			if (dataPract?.Practicals?.Count != 0)
 			{
 				IsPract = true;
 			}
 
-			var dataLabs = await DataAccess.GetLabs(CurrentSubject.Id);
+			var dataLabs = (await DataAccess.GetLabs(CurrentSubject.Id)).Data;
 			if (dataLabs?.Labs?.Count != 0)
 			{
 				IsLabs = true;
@@ -432,12 +432,12 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 				var statisticsModel = await DataAccess.GetStatistics(
 					CurrentSubject.Id, PlatformServices.Preferences.GroupId);
 
-				if (DataAccess.IsError && !DataAccess.IsConnectionError)
+				if (statisticsModel.IsError && !statisticsModel.IsConnectionError)
 				{
-					PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+					PlatformServices.Dialogs.ShowError(statisticsModel.ErrorMessage);
 				}
 
-				var result = statisticsModel?.Students?.ToList();
+				var result = statisticsModel.Data?.Students?.ToList();
 				return result;
 			}
 			catch (Exception ex)
@@ -503,12 +503,14 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 
 		async Task setStudentChartData()
 		{
-			var summary = await DataAccess.GetStudentStatisticsSummary();
-			if (DataAccess.IsError)
+			var summaryResult = await DataAccess.GetStudentStatisticsSummary();
+			if (summaryResult.IsError)
 			{
 				setStudentChartDataFromMarks();
 				return;
 			}
+
+			var summary = summaryResult.Data;
 
 			var studentSummary =
 				summary?.Students?.FirstOrDefault(s => s.StudentId == PlatformServices.Preferences.UserId) ??
@@ -539,12 +541,14 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 
 		async Task setTeacherChartData()
 		{
-			var summary = await DataAccess.GetTeacherStatisticsSummary();
-			if (DataAccess.IsError)
+			var summaryResult = await DataAccess.GetTeacherStatisticsSummary();
+			if (summaryResult.IsError)
 			{
 				setTeacherChartDataFromMarks();
 				return;
 			}
+
+			var summary = summaryResult.Data;
 
 			var subjectSummary = summary?.SubjectStatistics?.FirstOrDefault(s => s.SubjectId == CurrentSubject.Id);
 			if (subjectSummary == null)
@@ -753,12 +757,12 @@ namespace EduCATS.Pages.Statistics.Base.ViewModels
 
 
 		/// <summary>
-		/// Get profile if <see cref="App.getProfileInfo" didn't have time to load./>
+		/// Get profile if <see cref="EduCATS.Configuration.AppSession"/> didn't have time to load it.
 		/// </summary>
 		/// <returns>Task.</returns>
 		async Task getProfile()
 		{
-			var profile = await DataAccess.GetProfileInfo(PlatformServices.Preferences.UserLogin);
+			var profile = (await DataAccess.GetProfileInfo(PlatformServices.Preferences.UserLogin)).Data;
 			AppUserData.SetProfileData(PlatformServices, profile);
 			IsStudent = AppUserData.UserType == UserTypeEnum.Student;
 		}

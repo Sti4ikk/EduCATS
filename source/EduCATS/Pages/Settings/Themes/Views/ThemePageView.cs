@@ -21,7 +21,7 @@ namespace EduCATS.Pages.Settings.Themes.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new ThemePageViewModel(new PlatformServices());
+			BindingContext = new ThemePageViewModel(PlatformServices.Current);
 			createViews();
 		}
 
@@ -48,8 +48,8 @@ namespace EduCATS.Pages.Settings.Themes.Views
 				Margin = _listMargin
 			};
 
-			listView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "ThemeList");
-			listView.SetBinding(ListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			listView.SetBinding(RoundedListView.ItemsSourceProperty, "ThemeList");
+			listView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
 			return listView;
 		}
 	}

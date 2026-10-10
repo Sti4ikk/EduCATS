@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 	<application 
-		android:allowBackup="true" 
+		android:allowBackup="true"
+		android:fullBackupContent="@xml/backup_rules"
+		android:dataExtractionRules="@xml/data_extraction_rules"
 		android:icon="@mipmap/appicon" 
 		android:supportsRtl="true" 
 		android:networkSecurityConfig="@xml/network_security_config" 
@@ -11,6 +13,19 @@
 	<!-- Разрешения для работы с сетью -->
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
+
+	<!-- Фото в чат: камера; хранилище нужно MediaPicker только на Android 12 и ниже -->
+	<uses-permission android:name="android.permission.CAMERA" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+	<uses-feature android:name="android.hardware.camera" android:required="false" />
+
+	<!-- Android 11+: видимость приложения камеры для MediaPicker.CapturePhotoAsync -->
+	<queries>
+		<intent>
+			<action android:name="android.media.action.IMAGE_CAPTURE" />
+		</intent>
+	</queries>
 
 	<!-- Разрешения для WebRTC звонков -->
 	<uses-permission android:name="android.permission.RECORD_AUDIO" />

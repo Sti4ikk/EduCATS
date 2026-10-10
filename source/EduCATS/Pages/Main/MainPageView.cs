@@ -1,9 +1,12 @@
 ﻿using System;
+using EduCATS.Controls;
 using EduCATS.Helpers.Forms.Effects;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Pages.Learning.Views;
 using EduCATS.Pages.Settings.Base.Views;
 using EduCATS.Pages.Statistics.Base.Views;
 using EduCATS.Pages.Today.Base.Views;
+using EduCATS.Pages.Chat.Services;
 using EduCATS.Pages.Chat.Views;
 using EduCATS.Themes;
 using Nyxbull.Plugins.CrossLocalization;
@@ -18,6 +21,39 @@ namespace EduCATS.Pages.Main
 {
 	public class MainPageView : TabbedPage
 	{
+		NavigationPage _chatTab;
+
+		protected override void OnAppearing()
+		{
+			base.OnAppearing();
+			ChatUnreadService.Changed += updateChatTabTitle;
+			updateChatTabTitle();
+		}
+
+		protected override void OnDisappearing()
+		{
+			base.OnDisappearing();
+			ChatUnreadService.Changed -= updateChatTabTitle;
+		}
+
+		/// <summary>
+		/// Unread messages counter in the chat tab title: "Чат (3)".
+		/// </summary>
+		/// <remarks>
+		/// TabbedPage has no cross-platform badge API.
+		/// </remarks>
+		void updateChatTabTitle()
+		{
+			if (_chatTab == null)
+			{
+				return;
+			}
+
+			var title = CrossLocalization.Translate("main_chat");
+			var unread = ChatUnreadService.TotalUnread;
+			_chatTab.Title = unread > 0 ? $"{title} ({(unread > 99 ? "99+" : unread.ToString())})" : title;
+		}
+
 		public MainPageView()
 		{
 			setAndroidConfiguration();
@@ -29,7 +65,14 @@ namespace EduCATS.Pages.Main
 
 		void setPageDetails()
 		{
-			BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor);
+			// iOS: the system (translucent, "liquid glass" since iOS 26) tab bar.
+			// An opaque one keeps pages above it and leaves an empty strip
+			// over the floating bar.
+			if (DeviceInfo.Platform != DevicePlatform.iOS)
+			{
+				BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor);
+			}
+
 			SelectedTabColor = Color.FromArgb(Theme.Current.MainSelectedTabColor);
 			UnselectedTabColor = Color.FromArgb(Theme.Current.MainUnselectedTabColor);
 		}
@@ -48,10 +91,10 @@ namespace EduCATS.Pages.Main
 				createPage(new StatsPageView(),
 				CrossLocalization.Translate("main_statistics"),
 				Theme.Current.MainStatisticsIcon));
-			Children.Add(
-				createPage(new ChatPageView(),
+			_chatTab = createPage(new ChatPageView(),
 				CrossLocalization.Translate("main_chat"),
-				Theme.Current.MainChatIcon));
+				Theme.Current.MainChatIcon);
+			Children.Add(_chatTab);
 			Children.Add(
 				createPage(new SettingsPageView(),
 				CrossLocalization.Translate("main_settings"),
@@ -60,12 +103,28 @@ namespace EduCATS.Pages.Main
 
 		NavigationPage createPage(Page page, string title, string icon)
 		{
-			return new NavigationPage(page)
+			// "No connection" strip above every tab.
+			if (page is ContentPage contentPage && contentPage.Content != null)
+			{
+				contentPage.Content = OfflineBanner.Wrap(contentPage.Content);
+			}
+
+			// Pages are pushed right into the tab's navigation page (see AppPages),
+			// so its bar is the only one and has the app colors.
+			var navigationPage = new NavigationPage(page)
 			{
 				Title = title,
 				IconImageSource = ImageSource.FromFile(icon),
-				BackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor) // FromHex → FromArgb
+				BarBackgroundColor = Color.FromArgb(Theme.Current.AppNavigationBarBackgroundColor),
+				BarTextColor = Color.FromArgb(Theme.Current.BaseAppColor),
+				// Shows through where a page doesn't reach (e.g. under the iOS tab bar).
+				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor)
 			};
+
+			navigationPage.Pushed += (sender, e) => TabBarVisibility.Update(this);
+			navigationPage.Popped += (sender, e) => TabBarVisibility.Update(this);
+			navigationPage.PoppedToRoot += (sender, e) => TabBarVisibility.Update(this);
+			return navigationPage;
 		}
 
 		void setAndroidConfiguration()
@@ -83,6 +142,7 @@ namespace EduCATS.Pages.Main
 		void pageChanged(object sender, EventArgs e)
 		{
 			setCurrentTitle();
+			TabBarVisibility.Update(this);
 		}
 
 		void setCurrentTitle()

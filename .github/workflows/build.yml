@@ -1,80 +1,33 @@
 name: build
 
 on: [ workflow_dispatch, pull_request ]
-  
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   test:
-    runs-on: macos-latest
+    name: Unit tests
+    runs-on: ubuntu-latest
+    # Holds the Codecov token (as in the previous workflow).
     environment: github-actions-release
-    
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
-      
-      - name: Setup .NET 7.0
+
+      - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '7.0.x'
-      
-      - name: Unit-Tests Build + Coverlet
-        run: |
-          rm -rf "$COVERAGE_DIRECTORY"
-          mkdir -p "$COVERAGE_DIRECTORY"
-          COVERAGE_OUTPUT_DIRECTORY="$(pwd)/$COVERAGE_DIRECTORY"
-          dotnet --version
-          dotnet build $PROJECT_PATH
-          dotnet test $PROJECT_PATH \
-            /p:CollectCoverage=true \
-            /p:CoverletOutput="$COVERAGE_OUTPUT_DIRECTORY/" \
-            /p:CoverletOutputFormat=lcov \
-            /p:Exclude="[xunit.*]*" \
-            --results-directory:"$COVERAGE_DIRECTORY"
-          echo "Coverage files found:"
-          find "$COVERAGE_DIRECTORY" -type f | sort || true
-          LCOV_FILE_PATH="$(find "$COVERAGE_DIRECTORY" -type f \( -name "$COVERAGE_INFO_FILENAME" -o -name "*.info" \) -print -quit)"
-          if [ -z "$LCOV_FILE_PATH" ]; then
-            echo "No coverage output was generated (expected '$COVERAGE_INFO_FILENAME' or another '*.info' file)."
-            exit 1
-          fi
-        env:
-          PROJECT_PATH: ./source/EduCATS.UnitTests/EduCATS.UnitTests.csproj
-          COVERAGE_DIRECTORY: ./coverage
-          COVERAGE_INFO_FILENAME: coverage.info          
-        
-      - name: Codecov Deploy
-        uses: codecov/codecov-action@v5.4.3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/**/*.info,./coverage/**/*.xml
-          os: macos
-  build:
-    runs-on: macos-latest
-    needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - OS: iOS
-            PROJECT_PATH: ./source/EduCATS.iOS/EduCATS.iOS.csproj
-            CONFIGURATION: Release
-            PLATFORM: iPhoneSimulator
-          - OS: Android
-            PROJECT_PATH: ./source/EduCATS.Android/EduCATS.Android.csproj
-            CONFIGURATION: Release
-    name: Build (${{ matrix.OS }})
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-      
-      - name: Setup mono-mdk
-        run: |
-          brew install --cask mono-mdk
-          echo "/Library/Frameworks/Mono.framework/Versions/Current/Commands" >> $GITHUB_PATH
-      
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-      
+          global-json-file: global.json
+
+      # The shared project uses MAUI (UseMaui=true), the Android workload brings the MAUI SDK.
+      - name: Install MAUI workload
+        run: dotnet workload install maui-android
+
       - name: NuGet Cache
         uses: actions/cache@v4.2.3
         with:
@@ -82,34 +35,122 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-      
-      - name: Setup Xamarin
+
+      - name: Unit-Tests + Coverlet
         run: |
-          brew install --cask xamarin-ios
-          brew install --cask xamarin-android
-      
-      - name: Verify msbuild and Xamarin targets
-        run: |
-          which msbuild
-          msbuild -version
-          ls -la /Library/Frameworks/Mono.framework/External/xbuild/Xamarin/iOS || true
-      
-      - name: NuGet Restore
-        run: nuget restore $SOLUTION_PATH
+          rm -rf "$COVERAGE_DIRECTORY"
+          mkdir -p "$COVERAGE_DIRECTORY"
+          COVERAGE_OUTPUT_DIRECTORY="$(pwd)/$COVERAGE_DIRECTORY"
+          dotnet --info
+          dotnet test $PROJECT_PATH \
+            --logger "trx;LogFileName=test-results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutput="$COVERAGE_OUTPUT_DIRECTORY/" \
+            /p:CoverletOutputFormat=lcov \
+            --results-directory:"$COVERAGE_DIRECTORY"
         env:
-          SOLUTION_PATH: ./source/EduCATS.sln
-      
+          PROJECT_PATH: ./source/EduCATS.UnitTests/EduCATS.UnitTests.csproj
+          COVERAGE_DIRECTORY: ./coverage
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./coverage/**/*.trx
+
+      - name: Codecov Deploy
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v5.4.3
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: ./coverage/**/*.info
+
+  build-android:
+    name: Build (Android)
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-android
+
+      - name: NuGet Cache
+        uses: actions/cache@v4.2.3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # The app is restored and built only for Android: otherwise restore needs the
+      # workloads of all the app's platforms (iOS can't be installed on Linux).
       - name: Build
-        shell: bash
+        run: >
+          dotnet build ./source/EduCATS.MAUI/EduCATS.MAUI.csproj
+          -f net10.0-android -c Release
+          -p:OnlyTargetFramework=net10.0-android
+
+  build-ios:
+    name: Build (iOS simulator)
+    # macOS 26 image: has Xcode 26.6 (see the pinned workload below).
+    runs-on: macos-26
+    needs: test
+    # Depends on the Xcode version of the runner image matching the iOS workload.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # .NET for iOS needs exactly its Xcode version (major.minor).
+      # The latest iOS workload (27.x) needs Xcode 27, which GitHub runners
+      # don't have yet, so the workload is pinned to 26.5.10301 (the one the app
+      # is developed with); it needs Xcode 26.6.
+      # Remove the pin when runners get Xcode 27.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.6'
+
+      - name: Install MAUI workload (pinned)
         run: |
-          set -euo pipefail
-          if [ "${{ matrix.OS }}" = "iOS" ]; then
-            msbuild /t:Build \
-              /p:Configuration="${{ matrix.CONFIGURATION }}" \
-              /p:Platform="${{ matrix.PLATFORM }}" \
-              "${{ matrix.PROJECT_PATH }}"
-          else
-            msbuild /t:Build \
-              /p:Configuration="${{ matrix.CONFIGURATION }}" \
-              "${{ matrix.PROJECT_PATH }}"
-          fi
+          cat > workload-rollback.json <<'JSON'
+          {
+            "microsoft.net.sdk.ios": "26.5.10301/10.0.100",
+            "microsoft.net.sdk.maccatalyst": "26.5.10301/10.0.100",
+            "microsoft.net.sdk.maui": "10.0.20/10.0.100"
+          }
+          JSON
+          dotnet workload config --update-mode manifests
+          dotnet workload install maui-ios --from-rollback-file workload-rollback.json
+          dotnet workload list
+
+      # The app is restored and built only for iOS: otherwise restore needs
+      # the Android workload too.
+      - name: Build
+        run: >
+          dotnet build ./source/EduCATS.MAUI/EduCATS.MAUI.csproj
+          -f net10.0-ios -c Release
+          -p:OnlyTargetFramework=net10.0-ios
+          -p:RuntimeIdentifier=iossimulator-arm64
+          -p:EnableCodeSigning=false

@@ -40,7 +40,7 @@ namespace EduCATS.Pages.Files.ViewModels
 		/// <param name="device">App device.</param>
 		public FilesPageViewModel(IPlatformServices services) : base(services)
 		{
-			Task.Run(async () => await update(true));
+			RunOnMainThread(PlatformServices, () => update(true));
 			SubjectChanged += async (s, e) => await update(true);
 		}
 
@@ -119,7 +119,7 @@ namespace EduCATS.Pages.Files.ViewModels
 			set
 			{
 				SetProperty(ref _selectedItem, value);
-				Task.Run(async () => await openFile(_selectedItem));
+				{ var selected = _selectedItem; RunOnMainThread(PlatformServices, () => openFile(selected)); }
 			}
 		}
 
@@ -205,12 +205,12 @@ namespace EduCATS.Pages.Files.ViewModels
 			var appDataDirectory = PlatformServices.Device.GetAppDataDirectory();
 
 			var filesModel = await DataAccess.GetFilesTest(CurrentSubject.Id);
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (filesModel.IsError && !filesModel.IsConnectionError)
 			{
-				PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage);
+				PlatformServices.Dialogs.ShowError(filesModel.ErrorMessage);
 			}
 
-			var files = filesModel?.Files?.Select(f =>
+			var files = filesModel.Data?.Files?.Select(f =>
 			{
 				var file = Path.Combine(appDataDirectory, f.Name);
 				var exists = File.Exists(file);
@@ -227,7 +227,7 @@ namespace EduCATS.Pages.Files.ViewModels
 				.Select(file => $"{file.Name}/{file.Id}/{file.PathName}/{file.FileName}")
 				.ToList();
 
-			var filesDetails = await DataAccess.GetDetailsFilesTest(valuesForDetails);
+			var filesDetails = (await DataAccess.GetDetailsFilesTest(valuesForDetails)).Data;
 			if (filesDetails != null)
 			{
 				files.ForEach(file =>

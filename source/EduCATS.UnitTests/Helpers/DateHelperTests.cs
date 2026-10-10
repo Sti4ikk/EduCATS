@@ -32,7 +32,7 @@ namespace EduCATS.UnitTests
 		[SetUp]
 		public void SetUp()
 		{
-			var assembly = typeof(App).GetTypeInfo().Assembly;
+			var assembly = typeof(GlobalConsts).GetTypeInfo().Assembly;
 			CrossLocalization.Initialize(
 				assembly,
 				GlobalConsts.RunNamespace,

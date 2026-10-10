@@ -6,6 +6,11 @@ using System.Text;
 using EduCATS.Helpers;
 namespace EduCATS.UnitTests.Helpers
 {
+	/// <remarks>
+	/// The size is formatted with the current culture (users see "1,5MB" in
+	/// Russian), so the expected values are checked with a fixed culture.
+	/// </remarks>
+	[SetCulture("en-US")]
 	class ConverterSizeTest
 	{
 		[Test]

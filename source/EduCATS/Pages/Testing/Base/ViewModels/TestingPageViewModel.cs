@@ -18,7 +18,7 @@ namespace EduCATS.Pages.Testing.Base.ViewModels
 	{
 		public TestingPageViewModel(IPlatformServices services) : base(services)
 		{
-			Task.Run(async () => await update());
+			RunOnMainThread(PlatformServices, update);
 			SubjectChanged += async (id, name) => await update();
 		}
 
@@ -84,13 +84,13 @@ namespace EduCATS.Pages.Testing.Base.ViewModels
 
 		async Task<List<TestingGroupModel>> getTests()
 		{
-			var tests = await DataAccess.GetAvailableTests(CurrentSubject.Id, AppUserData.UserId) ??
-				new List<TestModel>();
+			var testsResult = await DataAccess.GetAvailableTests(CurrentSubject.Id, AppUserData.UserId);
+			var tests = testsResult.Data ?? new List<TestModel>();
 
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (testsResult.IsError && !testsResult.IsConnectionError)
 			{
 				PlatformServices.Device.MainThread(
-					() => PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage));
+					() => PlatformServices.Dialogs.ShowError(testsResult.ErrorMessage));
 			}
 
 			var testsForSelfStudy = getGroup(tests, "testing_self_study", "testing_comment", true);
@@ -135,7 +135,7 @@ namespace EduCATS.Pages.Testing.Base.ViewModels
 
 		bool containsLegacyNeuralNetworkTag(string title) =>
 			!string.IsNullOrEmpty(title) &&
-			title.IndexOf("ÈÍÑ", StringComparison.OrdinalIgnoreCase) >= 0;
+			title.IndexOf("Ð˜ÐÐ¡", StringComparison.OrdinalIgnoreCase) >= 0;
 
 		void openTest(object testObject)
 		{

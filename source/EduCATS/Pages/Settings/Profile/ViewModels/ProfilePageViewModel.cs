@@ -156,7 +156,7 @@ namespace EduCATS.Pages.Settings.Profile.ViewModels
 			Group = isProfessor ? null : _services.Preferences.GroupName;
 			GroupLabel = isProfessor ? null : CrossLocalization.Translate("choose_group");
 			Role = CrossLocalization.Translate(isProfessor ? "role_professor" : "role_student");
-			var profile = await DataAccess.GetProfileInfo(_username);
+			var profile = (await DataAccess.GetProfileInfo(_username)).Data;
 			if (profile.Name != null)
 			{
 				var fio = profile.Name.Split(' ');

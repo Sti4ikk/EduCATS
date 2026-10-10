@@ -1,3 +1,4 @@
+using EduCATS.Configuration;
 using EduCATS.Constants;
 using EduCATS.Data;
 using EduCATS.Data.User;
@@ -244,7 +245,7 @@ namespace EduCATS.Pages.Settings.Base.ViewModels
 			try
 			{
 				_services.Dialogs.ShowLoading(CrossLocalization.Translate("settings_delete_process"));
-				var recommendations = await DataAccess.DeleteAccount();
+				await DataAccess.DeleteAccount();
 			}
 			catch (Exception ex)
 			{
@@ -263,12 +264,7 @@ namespace EduCATS.Pages.Settings.Base.ViewModels
 
 		void resetData()
 		{
-			_ = ChatHubService.DisconnectAsync();
-			AppDemo.Instance.IsDemoAccount = false;
-			_services.Preferences.ResetPrefs();
-			AppUserData.Clear();
-			DataAccess.ResetData();
-			_services.Navigation.OpenLogin();
+			AppSession.Logout(_services);
 		}
 
 		protected void closePage()

@@ -23,7 +23,7 @@ namespace EduCATS.Pages.Settings.Language.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new LanguagePageViewModel(new PlatformServices());
+			BindingContext = new LanguagePageViewModel(PlatformServices.Current);
 			createViews();
 		}
 
@@ -40,8 +40,8 @@ namespace EduCATS.Pages.Settings.Language.Views
 				Margin = _listMargin
 			};
 
-			languageListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "LanguageList");
-			languageListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
+			languageListView.SetBinding(RoundedListView.ItemsSourceProperty, "LanguageList");
+			languageListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
 			return languageListView;
 		}
 

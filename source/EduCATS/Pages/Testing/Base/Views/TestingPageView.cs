@@ -1,4 +1,5 @@
 using EduCATS.Controls.Pickers;
+using EduCATS.Controls.RoundedListView;
 using EduCATS.Helpers.Forms;
 using EduCATS.Pages.Testing.Base.ViewModels;
 using EduCATS.Pages.Testing.Base.Views.ViewCells;
@@ -19,7 +20,7 @@ namespace EduCATS.Pages.Testing.Base.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new TestingPageViewModel(new PlatformServices());
+			BindingContext = new TestingPageViewModel(PlatformServices.Current);
 			createViews();
 		}
 
@@ -42,14 +43,21 @@ namespace EduCATS.Pages.Testing.Base.Views
 			var headerImage = createHeaderImage();
 			var subjectsView = new SubjectsPickerView();
 			var testListView = createTestList(subjectsView);
-			Content = new StackLayout
+			var layout = new Grid
 			{
-				Spacing = _spacing,
+				RowSpacing = _spacing,
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				Children = {
-					headerImage, testListView
+				RowDefinitions =
+				{
+					new RowDefinition { Height = GridLength.Auto },
+					new RowDefinition { Height = GridLength.Star }
 				}
 			};
+
+			// Grid: the list needs a finite height to scroll.
+			layout.Add(headerImage, 0, 0);
+			layout.Add(testListView, 0, 1);
+			Content = layout;
 		}
 
 		Image createHeaderImage()
@@ -63,18 +71,15 @@ namespace EduCATS.Pages.Testing.Base.Views
 			};
 		}
 
-		ListView createTestList(View subjectsView)
+		View createTestList(View subjectsView)
 		{
-			var testListView = new ListView(ListViewCachingStrategy.RecycleElement)
+			var testListView = new CollectionView
 			{
-				HasUnevenRows = true,
-				IsGroupingEnabled = true,
-				IsPullToRefreshEnabled = true,
-				SeparatorVisibility = SeparatorVisibility.None,
-				ItemTemplate = new DataTemplate(typeof(TestingPageViewCell)),
+				IsGrouped = true,
+				SelectionMode = SelectionMode.Single,
+				ItemTemplate = CellTemplates.FromCell(typeof(TestingPageViewCell)),
+				GroupHeaderTemplate = CellTemplates.FromCell(typeof(TestingHeaderViewCell)),
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				GroupHeaderTemplate = new DataTemplate(typeof(TestingHeaderViewCell)),
-				RefreshControlColor = Color.FromArgb(Theme.Current.BaseActivityIndicatorColorIOS),
 				Header = new StackLayout
 				{
 					BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
@@ -84,12 +89,28 @@ namespace EduCATS.Pages.Testing.Base.Views
 					}
 				}
 			};
-			testListView.ItemTapped += (sender, args) => ((ListView)sender).SelectedItem = null;
-			testListView.SetBinding(ListView.IsRefreshingProperty, "IsRefreshing");
-			testListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
-			testListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			testListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "TestList");
-			return testListView;
+
+			// The view model opens the test; the selection is reset so that
+			// the same test can be opened again.
+			testListView.SetBinding(SelectableItemsView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			testListView.SelectionChanged += (sender, e) =>
+			{
+				if (testListView.SelectedItem != null)
+				{
+					testListView.SelectedItem = null;
+				}
+			};
+			testListView.SetBinding(ItemsView.ItemsSourceProperty, "TestList");
+
+			var refreshView = new RefreshView
+			{
+				RefreshColor = Color.FromArgb(Theme.Current.BaseActivityIndicatorColorIOS),
+				Content = testListView
+			};
+
+			refreshView.SetBinding(RefreshView.IsRefreshingProperty, "IsRefreshing");
+			refreshView.SetBinding(RefreshView.CommandProperty, "RefreshCommand");
+			return refreshView;
 		}
 	}
 }

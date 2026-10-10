@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EduCATS.Configuration;
 using EduCATS.Data;
 using EduCATS.Data.User;
 using EduCATS.Demo;
@@ -83,9 +84,12 @@ namespace EduCATS.Pages.Settings.Server.ViewModels
 
 		void changeServer(ServerPageModel server)
 		{
+			// The chat connection and the token belong to the previous server.
+			_ = AppSession.LeaveChat();
 			AppDemo.Instance.IsDemoAccount = false;
 			Servers.SetCurrent(server.Address);
 			_services.Preferences.IsLoggedIn = false;
+			_services.Preferences.AccessToken = string.Empty;
 			AppUserData.Clear();
 			DataAccess.ResetData();
 			toggleServer(server);

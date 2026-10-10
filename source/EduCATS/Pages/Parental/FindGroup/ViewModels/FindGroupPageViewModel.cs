@@ -84,7 +84,7 @@ namespace EduCATS.Pages.Parental.FindGroup.ViewModels
 			{
 				_service.Device.MainThread(() => _service.Dialogs.ShowLoading());
 
-				var group = await DataAccess.GetGroupInfo(GroupNumber);
+				var group = (await DataAccess.GetGroupInfo(GroupNumber)).Data;
 
 				if (group.Code.Equals("200"))
 				{

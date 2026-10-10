@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Threading.Tasks;
+using EduCATS.Helpers.Forms.Pages;
 using EduCATS.Pages.Chat.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Nyxbull.Plugins.CrossLocalization;
 
 namespace EduCATS.Pages.Chat.Views
 {
-	public partial class CallPage : ContentPage
+	public partial class CallPage : ContentPage, IHidesTabBar
 	{
 		readonly int _chatId;
 
@@ -14,7 +16,9 @@ namespace EduCATS.Pages.Chat.Views
 		{
 			InitializeComponent();
 			_chatId = chatId;
-			Title = "Звонок";
+			Title = CrossLocalization.Translate("chat_call_title");
+			AcceptButton.Text = CrossLocalization.Translate("chat_call_accept");
+			EndButton.Text = CrossLocalization.Translate("chat_call_end");
 			ContactLabel.Text = title;
 
 			CallService.StateChanged += OnCallStateChanged;
@@ -37,29 +41,30 @@ namespace EduCATS.Pages.Chat.Views
 			switch (state)
 			{
 				case CallState.Calling:
-					StatusLabel.Text = "Вызов...";
+					StatusLabel.Text = CrossLocalization.Translate("chat_call_calling");
 					AcceptButton.IsVisible = false;
 					RejectButton.IsVisible = true;
 					EndButton.IsVisible = false;
-					RejectButton.Text = "Отменить";
+					RejectButton.Text = CrossLocalization.Translate("base_cancel");
 					break;
 
 				case CallState.Incoming:
-					StatusLabel.Text = "Входящий звонок";
+					StatusLabel.Text = CrossLocalization.Translate("chat_incoming_call");
+					RejectButton.Text = CrossLocalization.Translate("chat_call_reject");
 					AcceptButton.IsVisible = true;
 					RejectButton.IsVisible = true;
 					EndButton.IsVisible = false;
 					break;
 
 				case CallState.Connecting:
-					StatusLabel.Text = "Подключение...";
+					StatusLabel.Text = CrossLocalization.Translate("chat_call_connecting");
 					AcceptButton.IsVisible = false;
 					RejectButton.IsVisible = false;
 					EndButton.IsVisible = true;
 					break;
 
 				case CallState.Connected:
-					StatusLabel.Text = "На связи";
+					StatusLabel.Text = CrossLocalization.Translate("chat_call_connected");
 					AcceptButton.IsVisible = false;
 					RejectButton.IsVisible = false;
 					EndButton.IsVisible = true;
@@ -67,7 +72,7 @@ namespace EduCATS.Pages.Chat.Views
 
 				case CallState.Rejected:
 				case CallState.Ended:
-					StatusLabel.Text = state == CallState.Rejected ? "Звонок отклонён" : "Звонок завершён";
+					StatusLabel.Text = CrossLocalization.Translate(state == CallState.Rejected ? "chat_call_rejected" : "chat_call_ended");
 					AcceptButton.IsVisible = false;
 					RejectButton.IsVisible = false;
 					EndButton.IsVisible = false;

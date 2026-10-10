@@ -20,13 +20,13 @@ namespace EduCATS.Pages.Today.NewsDetails.Views
 
 		static Thickness _newsTitlePadding = new Thickness(10);
 
-		readonly PlatformServices _services;
+		readonly IPlatformServices _services;
 
 		public NewsDetailsPageView(string title, string body)
 		{
 			Title = CrossLocalization.Translate("news_details_title");
 			var dynSize = FontSizeController.GetDynamicSize(_bodyFontSize);
-			_services = new PlatformServices();
+			_services = PlatformServices.Current;
 			BindingContext = new NewsDetailsPageViewModel(dynSize, title, body, _services);
 			setToolbar();
 			createViews();

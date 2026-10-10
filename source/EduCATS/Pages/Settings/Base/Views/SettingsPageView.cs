@@ -29,7 +29,7 @@ namespace EduCATS.Pages.Settings.Base.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			_services = new PlatformServices();
+			_services = PlatformServices.Current;
 			BindingContext = new SettingsPageViewModel(_services);
 
 			createViews();
@@ -40,13 +40,9 @@ namespace EduCATS.Pages.Settings.Base.Views
 			var userLayout = createUserLayout();
 			var settingsListView = createList(userLayout);
 
-			Content = new StackLayout
-			{
-				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				Children = {
-					settingsListView
-				}
-			};
+			// The list itself: inside a StackLayout it couldn't scroll.
+			settingsListView.BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
+			Content = settingsListView;
 		}
 
 		Frame createUserLayout()
@@ -163,9 +159,9 @@ namespace EduCATS.Pages.Settings.Base.Views
 				Margin = _listMargin
 			};
 
-			settingsListView.ItemTapped += (sender, e) => ((ListView)sender).SelectedItem = null;
-			settingsListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			settingsListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "SettingsList");
+			settingsListView.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
+			settingsListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
+			settingsListView.SetBinding(RoundedListView.ItemsSourceProperty, "SettingsList");
 			return settingsListView;
 		}
 	}

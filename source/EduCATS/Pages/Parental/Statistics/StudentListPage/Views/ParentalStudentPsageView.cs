@@ -79,11 +79,11 @@ namespace EduCATS.Pages.Parental.Statistics.Views
 				IsPullToRefreshEnabled = true
 			};
 
-			roundedListView.ItemTapped += (sender, e) => ((ListView)sender).SelectedItem = null;
-			roundedListView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			roundedListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
-			roundedListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			roundedListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Students");
+			roundedListView.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
+			roundedListView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			roundedListView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
+			roundedListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
+			roundedListView.SetBinding(RoundedListView.ItemsSourceProperty, "Students");
 			return roundedListView;
 		}
 	}

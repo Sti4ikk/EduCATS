@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using EduCATS.Data.Caching;
 using EduCATS.Data.Interfaces;
@@ -11,26 +12,6 @@ namespace EduCATS.Data
 	public static partial class DataAccess
 	{
 		/// <summary>
-		/// Is error occurred.
-		/// </summary>
-		public static bool IsError { get; set; }
-
-		/// <summary>
-		/// Is network connection issue.
-		/// </summary>
-		public static bool IsConnectionError { get; set; }
-
-		/// <summary>
-		/// Is session expired issue.
-		/// </summary>
-		public static bool IsSessionExpiredError { get; set; }
-
-		/// <summary>
-		/// Error message.
-		/// </summary>
-		public static string ErrorMessage { get; set; }
-
-		/// <summary>
 		/// Delete data cache.
 		/// </summary>
 		public static void ResetData()
@@ -39,32 +20,29 @@ namespace EduCATS.Data
 		}
 
 		/// <summary>
-		/// Get data object and set error details.
+		/// Get single object with error details.
 		/// </summary>
 		/// <typeparam name="T">Object type.</typeparam>
 		/// <param name="dataAccess">Data Access instance.</param>
-		/// <param name="isList">Is object a list or a single object.</param>
-		/// <returns>Object.</returns>
-		public async static Task<object> GetDataObject<T>(IDataAccess<T> dataAccess, bool isList)
+		/// <returns>Object with error details.</returns>
+		public async static Task<DataResult<T>> GetSingleData<T>(IDataAccess<T> dataAccess)
 		{
-			object objectToGet;
+			// Off the UI thread: parsing, JSON validation and caching to disk
+			// of big responses made the UI stutter.
+			var data = await Task.Run(dataAccess.GetSingle);
+			return CreateResult(data, dataAccess);
+		}
 
-			if (isList)
-			{
-				objectToGet = await dataAccess.GetList();
-			}
-			else
-			{
-				objectToGet = await dataAccess.GetSingle();
-			}
-
-			SetError(
-				dataAccess.ErrorMessageKey,
-				dataAccess.IsConnectionError,
-				dataAccess.IsSessionExpiredError,
-				dataAccess.IsRawErrorMessage);
-
-			return objectToGet;
+		/// <summary>
+		/// Get objects list with error details.
+		/// </summary>
+		/// <typeparam name="T">Object type.</typeparam>
+		/// <param name="dataAccess">Data Access instance.</param>
+		/// <returns>Objects list with error details.</returns>
+		public async static Task<DataResult<List<T>>> GetListData<T>(IDataAccess<T> dataAccess)
+		{
+			var data = await Task.Run(dataAccess.GetList);
+			return CreateResult(data, dataAccess);
 		}
 
 		/// <summary>
@@ -91,37 +69,35 @@ namespace EduCATS.Data
 		}
 
 		/// <summary>
-		/// Set error details.
+		/// Create result with error details of the finished request.
 		/// </summary>
-		/// <param name="message">Error message or a ready-to-display raw message.</param>
-		/// <param name="isConnectionError">Is network connection issue.</param>
-		/// <param name="sessionExpired">Is session expired issue.</param>
-		/// <param name="isRawMessage">
-		/// If <c>true</c>, <paramref name="message"/> is used as-is (e.g. text
-		/// received directly from the server) instead of being passed through
-		/// <see cref="CrossLocalization.Translate"/>.
-		/// </param>
+		/// <typeparam name="TData">Data type.</typeparam>
+		/// <typeparam name="TItem">Data Access type.</typeparam>
+		/// <param name="data">Data.</param>
+		/// <param name="dataAccess">Finished Data Access instance.</param>
 		/// <remarks>
-		/// Can be <c>null</c> (if no error occurred).
+		/// <see cref="IDataAccess{T}.ErrorMessageKey"/> is used as-is if it's
+		/// a raw message (e.g. text received directly from the server),
+		/// otherwise it's passed through <see cref="CrossLocalization.Translate"/>.
 		/// </remarks>
-		public static void SetError(
-			string message,
-			bool isConnectionError,
-			bool sessionExpired,
-			bool isRawMessage = false)
+		/// <returns>Result.</returns>
+		public static DataResult<TData> CreateResult<TData, TItem>(TData data, IDataAccess<TItem> dataAccess)
 		{
-			if (message == null)
+			var messageKey = dataAccess.ErrorMessageKey;
+
+			if (messageKey == null)
 			{
-				IsError = false;
-				IsConnectionError = false;
-				IsSessionExpiredError = false;
-				return;
+				return new DataResult<TData>(data);
 			}
 
-			IsError = true;
-			IsConnectionError = isConnectionError;
-			IsSessionExpiredError = sessionExpired;
-			ErrorMessage = isRawMessage ? message : CrossLocalization.Translate(message);
+			var message = dataAccess.IsRawErrorMessage ?
+				messageKey : CrossLocalization.Translate(messageKey);
+
+			return new DataResult<TData>(
+				data,
+				message,
+				dataAccess.IsConnectionError,
+				dataAccess.IsSessionExpiredError);
 		}
 	}
 }

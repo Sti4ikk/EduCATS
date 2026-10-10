@@ -158,23 +158,21 @@ namespace EduCATS.UnitTests
 		public void SetAuthorizationHeaderSetsHeaderForAuthorizedEndpoint()
 		{
 			var controller = createController("https://educats.by/Profile/GetProfileInfo", "token");
-			invokeSetAuthorizationHeader(controller);
+			var request = invokeSetAuthorizationHeader(controller);
 
-			var client = getHttpClient(controller);
-			Assert.NotNull(client.DefaultRequestHeaders.Authorization);
-			Assert.AreEqual("token", client.DefaultRequestHeaders.Authorization.Scheme);
+			Assert.NotNull(request.Headers.Authorization);
+			Assert.AreEqual("token", request.Headers.Authorization.Scheme);
 		}
 
 		[Test]
 		public void SetAuthorizationHeaderSetsSchemeAndParameterWhenTokenContainsSeparator()
 		{
 			var controller = createController("https://educats.by/Profile/GetProfileInfo", "Bearer abc.def");
-			invokeSetAuthorizationHeader(controller);
+			var request = invokeSetAuthorizationHeader(controller);
 
-			var client = getHttpClient(controller);
-			Assert.NotNull(client.DefaultRequestHeaders.Authorization);
-			Assert.AreEqual("Bearer", client.DefaultRequestHeaders.Authorization.Scheme);
-			Assert.AreEqual("abc.def", client.DefaultRequestHeaders.Authorization.Parameter);
+			Assert.NotNull(request.Headers.Authorization);
+			Assert.AreEqual("Bearer", request.Headers.Authorization.Scheme);
+			Assert.AreEqual("abc.def", request.Headers.Authorization.Parameter);
 		}
 
 		[Test]
@@ -186,10 +184,9 @@ namespace EduCATS.UnitTests
 				.Returns("   ");
 			var services = Mock.Of<IPlatformServices>(s => s.Preferences == preferences.Object);
 			var controller = new RequestController("https://educats.by/Profile/GetProfileInfo", services);
-			invokeSetAuthorizationHeader(controller);
+			var request = invokeSetAuthorizationHeader(controller);
 
-			var client = getHttpClient(controller);
-			Assert.IsNull(client.DefaultRequestHeaders.Authorization);
+			Assert.IsNull(request.Headers.Authorization);
 		}
 
 		[Test]
@@ -203,10 +200,33 @@ namespace EduCATS.UnitTests
 		public void SetAuthorizationHeaderClearsHeaderForLoginEndpoint()
 		{
 			var controller = createController("https://educats.by/Account/LoginJWT", "token");
-			invokeSetAuthorizationHeader(controller);
+			var request = invokeSetAuthorizationHeader(controller);
 
-			var client = getHttpClient(controller);
+			Assert.IsNull(request.Headers.Authorization);
+		}
+
+		[Test]
+		public async Task SendRequestSetsHeadersPerRequestWithoutTouchingSharedClient()
+		{
+			var seenAuthorization = new System.Collections.Concurrent.ConcurrentBag<string>();
+			var client = createHttpClient((request, __) =>
+			{
+				seenAuthorization.Add(request.Headers.Authorization?.ToString());
+				return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+			});
+			setSharedHttpClient(client);
+
+			var withToken = createController("https://educats.by/Profile/GetNews", "Bearer abc");
+			withToken.SetPostContent("{}", Encoding.UTF8, "application/json");
+			var loginEndpoint = createController("https://educats.by/Account/LoginJWT", "Bearer abc");
+
+			await Task.WhenAll(
+				withToken.SendRequest(HttpMethod.Post),
+				loginEndpoint.SendRequest(HttpMethod.Get));
+
+			Assert.That(seenAuthorization, Is.EquivalentTo(new[] { "Bearer abc", null }));
 			Assert.IsNull(client.DefaultRequestHeaders.Authorization);
+			Assert.IsFalse(client.DefaultRequestHeaders.Contains("Origin"));
 		}
 
 		[Test]
@@ -341,12 +361,14 @@ namespace EduCATS.UnitTests
 			return (bool)method.Invoke(controller, null);
 		}
 
-		static void invokeSetAuthorizationHeader(RequestController controller)
+		static HttpRequestMessage invokeSetAuthorizationHeader(RequestController controller)
 		{
+			var request = new HttpRequestMessage(HttpMethod.Get, controller.Uri);
 			var method = typeof(RequestController).GetMethod(
 				"setAuthorizationHeader",
 				_privateInstance);
-			method.Invoke(controller, null);
+			method.Invoke(controller, new object[] { request });
+			return request;
 		}
 
 		static HttpClient getHttpClient(RequestController controller)

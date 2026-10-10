@@ -1,7 +1,10 @@
 using EduCATS.Fonts;
+using EduCATS.Helpers.Logs;
 using EduCATS.Networking;
 using Nyxbull.Plugins.CrossLocalization;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
 
 
@@ -38,7 +41,7 @@ namespace EduCATS.Helpers.Forms.Settings
 		/// <summary>
 		/// Default theme.
 		/// </summary>
-		const string _themeDefault = Themes.AppTheme.ThemeDefault;
+		const string _themeDefault = Themes.AppTheme.ThemeSystem;
 
 		/// <summary>
 		/// Theme.
@@ -247,36 +250,148 @@ namespace EduCATS.Helpers.Forms.Settings
 		}
 
 		/// <summary>
-		/// Default AccessToken
+		/// Access token key in secure storage.
 		/// </summary>
-		const string AccessTokenValue = "";
-		
-		readonly string _isAccessToken = "";
+		const string _accessTokenKey = "APP_ACCESS_TOKEN";
+
 		/// <summary>
-		/// AccessToken.
+		/// Legacy key the token used to be stored under in plain preferences.
 		/// </summary>
-		public string AccessToken { 
-			get => Preferences.Get(AccessTokenValue, _isAccessToken);
-			set => Preferences.Set(AccessTokenValue, value); 
+		const string _legacyAccessTokenKey = "";
+
+		/// <summary>
+		/// Access token cache sync root.
+		/// </summary>
+		static readonly object _accessTokenSync = new object();
+
+		/// <summary>
+		/// Access token cached in memory.
+		/// </summary>
+		/// <remarks>
+		/// Every network request reads the token synchronously,
+		/// so secure storage is only read once.
+		/// </remarks>
+		static string _accessToken;
+
+		/// <summary>
+		/// Is <see cref="_accessToken"/> loaded from secure storage.
+		/// </summary>
+		static bool _isAccessTokenLoaded;
+
+		/// <summary>
+		/// Access token.
+		/// </summary>
+		/// <remarks>
+		/// Persisted in <see cref="SecureStorage"/> (Keychain / Android Keystore),
+		/// not in plain preferences.
+		/// </remarks>
+		public string AccessToken {
+			get {
+				lock (_accessTokenSync) {
+					if (!_isAccessTokenLoaded) {
+						_accessToken = loadAccessToken();
+						_isAccessTokenLoaded = true;
+					}
+
+					return _accessToken ?? string.Empty;
+				}
+			}
+			set {
+				lock (_accessTokenSync) {
+					_accessToken = value;
+					_isAccessTokenLoaded = true;
+				}
+
+				saveAccessToken(value);
+			}
 		}
 
 		/// <summary>
-		/// Delete all preferences except Font and Theme.
+		/// Load access token from secure storage.
+		/// </summary>
+		/// <remarks>
+		/// Moves the token from the legacy plain preferences key if needed.
+		/// </remarks>
+		/// <returns>Access token or <c>null</c>.</returns>
+		static string loadAccessToken()
+		{
+			try {
+				if (Preferences.ContainsKey(_legacyAccessTokenKey)) {
+					var legacyToken = Preferences.Get(_legacyAccessTokenKey, string.Empty);
+					Preferences.Remove(_legacyAccessTokenKey);
+
+					if (!string.IsNullOrEmpty(legacyToken)) {
+						saveAccessToken(legacyToken);
+						return legacyToken;
+					}
+				}
+
+				// Task.Run: never block on the platform call from the UI thread's context.
+				return Task.Run(() => SecureStorage.Default.GetAsync(_accessTokenKey))
+					.GetAwaiter().GetResult();
+			} catch (Exception ex) {
+				// Secure storage can become unreadable (e.g. restored backup,
+				// changed device lock). Drop the token - the user will log in again.
+				AppLogs.Log(ex);
+				SecureStorage.Default.Remove(_accessTokenKey);
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Save access token to secure storage (or remove it if empty).
+		/// </summary>
+		/// <param name="token">Access token.</param>
+		static void saveAccessToken(string token)
+		{
+			// Written in the background (Keystore encryption is slow, and the
+			// token is set from the UI thread on login); the value in memory
+			// is used meanwhile. Writes are queued to keep their order.
+			lock (_accessTokenSync) {
+				_accessTokenWrite = _accessTokenWrite.ContinueWith(
+					_ => writeAccessToken(token),
+					CancellationToken.None,
+					TaskContinuationOptions.None,
+					TaskScheduler.Default);
+			}
+		}
+
+		/// <summary>
+		/// The last queued secure storage write.
+		/// </summary>
+		static Task _accessTokenWrite = Task.CompletedTask;
+
+		static void writeAccessToken(string token)
+		{
+			try {
+				if (string.IsNullOrEmpty(token)) {
+					SecureStorage.Default.Remove(_accessTokenKey);
+					return;
+				}
+
+				SecureStorage.Default.SetAsync(_accessTokenKey, token).GetAwaiter().GetResult();
+			} catch (Exception ex) {
+				AppLogs.Log(ex);
+			}
+		}
+
+		/// <summary>
+		/// Delete all preferences and the access token
+		/// except Font, Theme and Server.
 		/// </summary>
 		public void ResetPrefs()
 		{
 			var fontPrefs = Font;
 			var themePrefs = Theme;
 			var isLargeFont = IsLargeFont;
-			var accessToken = AccessToken;
 			var server = Server;
 
 			Preferences.Clear();
+			AccessToken = string.Empty;
 
 			Font = fontPrefs;
 			Theme = themePrefs;
 			IsLargeFont = isLargeFont;
-			AccessToken = accessToken;
 			Server = server;
 		}
 	}

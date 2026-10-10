@@ -25,8 +25,6 @@ namespace EduCATS.Pages.Today.Base.Views
 
 		const double _subjectsCardCornerRadius = RoundedListView.HeaderHeight / 2;
 
-		double _subjectRowHeight = 170;
-
 		static Thickness _newsLabelMagin = new Thickness(10);
 		static Thickness _subjectsMargin = new Thickness(10, 0, 10, 5);
 		static Thickness _subjectsCardPadding = new Thickness(0, RoundedListView.HeaderHeight / 2);
@@ -39,27 +37,19 @@ namespace EduCATS.Pages.Today.Base.Views
 
 		public TodayPageView()
 		{
-			System.Diagnostics.Debug.WriteLine("=== TODAY: Constructor started");
 			NavigationPage.SetHasNavigationBar(this, false);
-			var subjectListHeaderHeight = RoundedListView.HeaderHeight;
-			_services = new PlatformServices();
-			setupSubjectsRowHeight();
-			BindingContext = new TodayPageViewModel(_subjectRowHeight, subjectListHeaderHeight, _services);
-			System.Diagnostics.Debug.WriteLine("=== TODAY: BindingContext set");
+			_services = PlatformServices.Current;
+			BindingContext = new TodayPageViewModel(_services);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			createViews();
-			System.Diagnostics.Debug.WriteLine("=== TODAY: Views created");
 		}
 
 		void createViews()
 		{
-			System.Diagnostics.Debug.WriteLine("=== TODAY: createViews started");
 
 			var calendarView = createCalendar();
-			System.Diagnostics.Debug.WriteLine("=== TODAY: calendar created");
 
 			var newsView = createNewsList();
-			System.Diagnostics.Debug.WriteLine("=== TODAY: newsView created");
 
 			// Grid (not StackLayout) so the news CollectionView gets a finite height
 			// and can virtualize its items.
@@ -76,16 +66,7 @@ namespace EduCATS.Pages.Today.Base.Views
 			content.Add(calendarView, 0, 0);
 			content.Add(newsView, 0, 1);
 
-			System.Diagnostics.Debug.WriteLine($"=== TODAY: content children count: {content.Children.Count}");
 			Content = content;
-			System.Diagnostics.Debug.WriteLine($"=== TODAY: Content set, type: {Content?.GetType().Name}");
-		}
-
-		void setupSubjectsRowHeight()
-		{
-			if (_services.Preferences.IsLargeFont) {
-				_subjectRowHeight += FontSizeController.LargeAddition;
-			}
 		}
 
 		StackLayout createCalendar()
@@ -106,7 +87,8 @@ namespace EduCATS.Pages.Today.Base.Views
 		{
 			var calendarDaysOfWeekCollectionView = new CollectionView {
 				BackgroundColor = Color.FromArgb(Theme.Current.TodayCalendarBackgroundColor),
-				IsEnabled = false,
+				// Not tappable. Not IsEnabled = false: it turns the labels grey.
+				InputTransparent = true,
 				HeightRequest = _calendarDaysOfWeekCollectionHeight,
 				ItemsLayout = new GridItemsLayout(_calendarItemsQuantity, ItemsLayoutOrientation.Vertical),
 				ItemTemplate = new DataTemplate(

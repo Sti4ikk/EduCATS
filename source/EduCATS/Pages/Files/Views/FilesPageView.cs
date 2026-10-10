@@ -27,7 +27,7 @@ namespace EduCATS.Pages.Files.Views
 		public FilesPageView()
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
-			BindingContext = new FilesPageViewModel(new PlatformServices());
+			BindingContext = new FilesPageViewModel(PlatformServices.Current);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			createViews();
 		}
@@ -46,14 +46,19 @@ namespace EduCATS.Pages.Files.Views
 				}
 			});
 
-			var mainContent = new StackLayout
+			// Grid: the list needs a finite height to scroll.
+			var mainContent = new Grid
 			{
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				Children = {
-					headerImage,
-					filesListView
+				RowDefinitions =
+				{
+					new RowDefinition { Height = GridLength.Auto },
+					new RowDefinition { Height = GridLength.Star }
 				}
 			};
+
+			mainContent.Add(headerImage, 0, 0);
+			mainContent.Add(filesListView, 0, 1);
 
 			var downloadOverlay = createDownloadOverlay();
 
@@ -105,10 +110,10 @@ namespace EduCATS.Pages.Files.Views
 				IsPullToRefreshEnabled = true,
 				Margin = _filesListMargin
 			};
-			filesListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "FileList");
-			filesListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
-			filesListView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			filesListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
+			filesListView.SetBinding(RoundedListView.ItemsSourceProperty, "FileList");
+			filesListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			filesListView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			filesListView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
 			return filesListView;
 		}
 

@@ -122,6 +122,7 @@ namespace EduCATS.Pages.Settings.About.ViewModels
 			try
 			{
 				var platform = _services.Device.GetRuntimePlatform();
+				AppLogs.Flush();
 				var logsFilePath = AppLogs.LogsFilePath;
 
 				var result = await _services.Device.SendEmail(

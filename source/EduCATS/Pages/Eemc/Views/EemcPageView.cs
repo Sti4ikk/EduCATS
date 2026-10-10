@@ -24,7 +24,7 @@ namespace EduCATS.Pages.Eemc.Views
 		public EemcPageView(int searchId)
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
-			BindingContext = new EemcPageViewModel(new PlatformServices(), searchId);
+			BindingContext = new EemcPageViewModel(PlatformServices.Current, searchId);
 			createViews();
 		}
 

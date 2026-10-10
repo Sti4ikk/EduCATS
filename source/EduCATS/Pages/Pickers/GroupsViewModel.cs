@@ -85,12 +85,12 @@ namespace EduCATS.Pages.Pickers
 		{
 			var groups = await DataAccess.GetOnlyGroups(SubjectId);
 
-			if (DataAccess.IsError) {
+			if (groups.IsError) {
 				PlatformServices.Device.MainThread(
-					() => PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage));
+					() => PlatformServices.Dialogs.ShowError(groups.ErrorMessage));
 			}
 
-			return groups.GroupsList;
+			return groups.Data?.GroupsList;
 		}
 
 		/// <summary>

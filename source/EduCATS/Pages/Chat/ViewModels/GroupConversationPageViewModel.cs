@@ -1,249 +1,50 @@
-﻿using EduCATS.Data.User;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using EduCATS.Data.User;
 using EduCATS.Helpers.Forms;
 using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Storage;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace EduCATS.Pages.Chat.ViewModels
 {
 	/// <summary>
-	/// Group (subject) conversation ViewModel.
+	/// Group (subject) conversation.
 	/// </summary>
 	/// <remarks>
-	/// Deliberately a separate class from <see cref="ConversationPageViewModel"/>
-	/// rather than a shared/unified one: the server sends the same
-	/// "GetMessage" event for both personal and group messages, with no
-	/// type flag in the payload, and personal/group chat ids come from
-	/// separate DB tables (so they *could* numerically collide). Keeping
-	/// two independent screens means each only ever trusts events while
-	/// it itself is the active screen for that specific chatId - same
-	/// residual risk profile as the existing personal chat screen.
+	/// Kept separate from <see cref="ConversationPageViewModel"/>: personal
+	/// and group chat ids come from separate DB tables (so they could
+	/// collide), see <see cref="ConversationViewModelBase"/>.
 	/// </remarks>
-	public class GroupConversationPageViewModel : ViewModel
+	public class GroupConversationPageViewModel : ConversationViewModelBase
 	{
-		readonly IPlatformServices _services;
-		readonly int _chatId;
 		readonly string _role;
 
-		public event Action HistoryLoaded;
-
 		public GroupConversationPageViewModel(IPlatformServices services, int chatId, string role, string title)
+			: base(services, chatId, title)
 		{
-			_services = services;
-			_chatId = chatId;
 			_role = role;
-			Title = title;
-			Messages = new ObservableCollection<object>();
-
-			ChatHubService.MessageReceived += onMessageReceived;
-
-			_ = loadHistory();
+			Start();
 		}
 
-		public string Title { get; }
+		public override bool IsGroupChat => true;
 
-		ObservableCollection<object> _messages;
+		protected override Task<List<MessageItemModel>> LoadPageAsync(int limit, int offset) =>
+			ChatApiService.GetGroupMsgs(AppUserData.UserId, ChatId, limit, offset);
 
-		public ObservableCollection<object> Messages
-		{
-			get { return _messages; }
-			set { SetProperty(ref _messages, value); }
-		}
+		protected override Task MarkReadOnServerAsync() =>
+			ChatApiService.MarkGroupChatAsRead(AppUserData.UserId, ChatId);
 
-		string _messageText;
-
-		public string MessageText
-		{
-			get { return _messageText; }
-			set { SetProperty(ref _messageText, value); }
-		}
-
-		Command _sendCommand;
-
-		public Command SendCommand
-		{
-			get { return _sendCommand ??= new Command(async () => await send()); }
-		}
-
-		Command _attachCommand;
-
-		/// <summary>
-		/// Открывает системный пикер файлов, кодирует выбранный файл в
-		/// base64 и отправляет его через тот же SignalR-хаб, что и
-		/// текстовые сообщения (см. <see cref="GroupMessageSendModel"/>).
-		/// </summary>
-		public Command AttachCommand
-		{
-			get { return _attachCommand ??= new Command(async () => await attach()); }
-		}
-
-		async Task loadHistory()
-		{
-			_services.Dialogs.ShowLoading();
-
-			try
+		protected override Task<bool> SendToHubAsync(OutgoingMessage message) =>
+			ChatHubService.SendGroupMessage(new GroupMessageSendModel
 			{
-				var history = await ChatApiService.GetGroupMsgs(AppUserData.UserId, _chatId)
-					?? new List<MessageItemModel>();
-
-				DateTime? lastDate = null;
-
-				foreach (var msg in history.OrderBy(m => m.Time))
-				{
-					// StripHtml только для обычного текста - для файловых/
-					// картиночных сообщений msg.Text содержит имя файла,
-					// а не HTML (см. аналогичный фикс в личном чате).
-					if (msg.IsPlainText)
-					{
-						msg.Text = HtmlHelper.StripHtml(msg.Text);
-					}
-
-					msg.IsMine = msg.Name == AppUserData.Name;
-
-					var msgDate = msg.Time.Date;
-
-					if (lastDate == null || msgDate != lastDate.Value)
-					{
-						Messages.Add(new DateSeparatorModel(msgDate));
-						lastDate = msgDate;
-					}
-
-					Messages.Add(msg);
-				}
-
-				_ = ChatApiService.MarkGroupChatAsRead(AppUserData.UserId, _chatId);
-			}
-			finally
-			{
-				_services.Dialogs.HideLoading();
-				HistoryLoaded?.Invoke();
-			}
-		}
-
-		async Task send()
-		{
-			if (string.IsNullOrWhiteSpace(MessageText))
-			{
-				return;
-			}
-
-			var text = MessageText;
-			MessageText = string.Empty;
-
-			var payload = new GroupMessageSendModel
-			{
-				Text = text,
-				ChatId = _chatId,
-				UserId = AppUserData.UserId
-			};
-
-			await ChatHubService.SendGroupMessage(payload, _role);
-		}
-
-		async Task attach()
-		{
-			FileResult picked;
-
-			try
-			{
-				picked = await FilePicker.Default.PickAsync(PickOptions.Default);
-			}
-			catch (Exception)
-			{
-				// Пользователь отменил выбор или нет разрешений - молча выходим.
-				return;
-			}
-
-			if (picked == null)
-			{
-				return;
-			}
-
-			_services.Dialogs.ShowLoading();
-
-			try
-			{
-				using var stream = await picked.OpenReadAsync();
-				using var ms = new MemoryStream();
-				await stream.CopyToAsync(ms);
-
-				var bytes = ms.ToArray();
-				var base64 = Convert.ToBase64String(bytes);
-				var isImage = isImageExtension(picked.FileName);
-
-				var payload = new GroupMessageSendModel
-				{
-					ChatId = _chatId,
-					UserId = AppUserData.UserId,
-					Text = picked.FileName,
-					IsImage = isImage,
-					IsFile = !isImage,
-					ImageContent = isImage ? base64 : null,
-					FileContent = isImage ? null : base64,
-					FileSize = formatFileSize(bytes.Length)
-				};
-
-				await ChatHubService.SendGroupMessage(payload, _role);
-			}
-			finally
-			{
-				_services.Dialogs.HideLoading();
-			}
-		}
-
-		static bool isImageExtension(string fileName)
-		{
-			var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-			return ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
-		}
-
-		static string formatFileSize(long bytes)
-		{
-			return bytes < 1024 * 1024
-				? $"{bytes / 1024.0:F1} KB"
-				: $"{bytes / 1024.0 / 1024.0:F1} MB";
-		}
-
-		void onMessageReceived(MessageItemModel msg)
-		{
-			if (msg.ChatId != _chatId)
-			{
-				return;
-			}
-
-			if (msg.IsPlainText)
-			{
-				msg.Text = HtmlHelper.StripHtml(msg.Text);
-			}
-
-			msg.IsMine = msg.Name == AppUserData.Name;
-
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				var lastMsgDate = Messages
-					.OfType<MessageItemModel>()
-					.LastOrDefault()?.Time.Date;
-
-				if (lastMsgDate == null || msg.Time.Date != lastMsgDate.Value)
-				{
-					Messages.Add(new DateSeparatorModel(msg.Time.Date));
-				}
-
-				Messages.Add(msg);
-			});
-		}
-
-		public void Cleanup()
-		{
-			ChatHubService.MessageReceived -= onMessageReceived;
-		}
+				ChatId = ChatId,
+				UserId = AppUserData.UserId,
+				Text = message.Text,
+				FileContent = message.FileContent,
+				ImageContent = message.ImageContent,
+				FileSize = message.FileSize,
+				IsImage = message.IsImage,
+				IsFile = message.IsFile
+			}, _role);
 	}
 }

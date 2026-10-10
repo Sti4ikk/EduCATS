@@ -43,5 +43,21 @@ namespace EduCATS.UnitTests
 			var actual = DataCaching<string>.Get(_cacheKey);
 			Assert.AreEqual(_dataToSave, actual);
 		}
+
+		[Test]
+		public void GetExpiredReturnsNothingTest()
+		{
+			Barrel.Current.Add(_cacheKey, _dataToSave, TimeSpan.FromDays(-1));
+			var actual = DataCaching<string>.Get(_cacheKey);
+			Assert.AreEqual(null, actual);
+			Assert.That(Barrel.Current.Exists(_cacheKey), Is.False);
+		}
+
+		[Test]
+		public void GetMissingReturnsNothingTest()
+		{
+			Barrel.Current.Empty(_cacheKey);
+			Assert.AreEqual(null, DataCaching<string>.Get(_cacheKey));
+		}
 	}
 }

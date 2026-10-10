@@ -193,8 +193,15 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// </summary>
 		/// <param name="chatId">Chat ID.</param>
 		/// <param name="title">Page title (chat participant's name).</param>
+		/// <param name="peerUserId">Chat participant's ID (for the online status), 0 if unknown.</param>
 		/// <returns>Task.</returns>
-		Task OpenConversation(int chatId, string title);
+		Task OpenConversation(int chatId, string title, int peerUserId = 0);
+
+		/// <summary>
+		/// Open search through messages of all chats.
+		/// </summary>
+		/// <returns>Task.</returns>
+		Task OpenChatSearch();
 
 		/// <summary>
 		/// Open group (subject) chat conversation page.

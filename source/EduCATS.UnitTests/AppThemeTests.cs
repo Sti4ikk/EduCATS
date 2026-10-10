@@ -29,6 +29,15 @@ namespace EduCATS.UnitTests
 		}
 
 		[Test]
+		public void ShouldUseDarkTest()
+		{
+			Assert.IsTrue(AppTheme.ShouldUseDark(AppTheme.ThemeDark, isSystemDark: false));
+			Assert.IsFalse(AppTheme.ShouldUseDark(AppTheme.ThemeDefault, isSystemDark: true));
+			Assert.IsTrue(AppTheme.ShouldUseDark(AppTheme.ThemeSystem, isSystemDark: true));
+			Assert.IsFalse(AppTheme.ShouldUseDark(AppTheme.ThemeSystem, isSystemDark: false));
+		}
+
+		[Test]
 		public void SetThemeFromPrefsTest()
 		{
 			_theme.SetTheme(AppTheme.ThemeDefault, true);

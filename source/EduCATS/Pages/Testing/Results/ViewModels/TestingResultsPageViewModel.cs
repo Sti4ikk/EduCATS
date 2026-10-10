@@ -27,7 +27,7 @@ namespace EduCATS.Pages.Testing.Results.ViewModels
 			_testId = testId;
 			_fromComplexLearning = fromComplexLearning;
 
-			Task.Run(async () => {
+			RunOnMainThread(_services, async () => {
 				try {
 					await getResults();
 					estimateRating();
@@ -59,15 +59,16 @@ namespace EduCATS.Pages.Testing.Results.ViewModels
 		async Task getResults()
 		{
 			List<TestResultsModel> resultList;
-			ExtendedTestResultModel extendedResultList = await DataAccess.GetUserAnswers(_testId);
+			var extendedResult = await DataAccess.GetUserAnswers(_testId);
 
-			KeyValuePair<string, object> answer = extendedResultList.Data.SingleOrDefault(x => Equals(x.Key, "Answers"));
-			resultList = JsonConvert.DeserializeObject<List<TestResultsModel>>(answer.Value.ToString());
-
-			if (DataAccess.IsError) {
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+			if (extendedResult.IsError) {
+				_services.Dialogs.ShowError(extendedResult.ErrorMessage);
 				return;
 			}
+
+			ExtendedTestResultModel extendedResultList = extendedResult.Data;
+			KeyValuePair<string, object> answer = extendedResultList.Data.SingleOrDefault(x => Equals(x.Key, "Answers"));
+			resultList = JsonConvert.DeserializeObject<List<TestResultsModel>>(answer.Value.ToString());
 
 			Results = new List<TestResultsModel>(resultList);
 		}

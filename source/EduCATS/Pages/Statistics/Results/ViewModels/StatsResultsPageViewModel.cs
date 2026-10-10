@@ -94,8 +94,31 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 			IsLoading = false;
 		}
 
+		/// <summary>
+		/// Error message of the last failed data request (if any).
+		/// </summary>
+		string _dataErrorMessage;
+
+		/// <summary>
+		/// Get data and remember its error (if any).
+		/// </summary>
+		/// <typeparam name="T">Data type.</typeparam>
+		/// <param name="result">Data result.</param>
+		/// <returns>Data.</returns>
+		T getData<T>(DataResult<T> result)
+		{
+			if (result.IsError)
+			{
+				_dataErrorMessage = result.ErrorMessage;
+			}
+
+			return result.Data;
+		}
+
 		async Task getData()
 		{
+			_dataErrorMessage = null;
+
 			try
 			{
 				switch (_statisticsPage)
@@ -123,23 +146,14 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 
 				calculateSummary();
 
-				if (DataAccess.IsError)
-				{
-					_services.Device.MainThread(
-						() => _services.Dialogs.ShowError(DataAccess.ErrorMessage));
-				}
+				showDataErrorIfNeeded();
 			}
 			catch (NullReferenceException ex)
 			{
 				AppLogs.Log(ex);
 				Marks = new List<StatsResultsPageModel>();
 				setSummary(_emptyRatingString);
-
-				if (DataAccess.IsError && !string.IsNullOrEmpty(DataAccess.ErrorMessage))
-				{
-					_services.Device.MainThread(
-						() => _services.Dialogs.ShowError(DataAccess.ErrorMessage));
-				}
+				showDataErrorIfNeeded();
 			}
 			catch (Exception ex)
 			{
@@ -147,10 +161,21 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 			}
 		}
 
+		void showDataErrorIfNeeded()
+		{
+			var message = _dataErrorMessage;
+
+			if (!string.IsNullOrEmpty(message))
+			{
+				_services.Device.MainThread(
+					() => _services.Dialogs.ShowError(message));
+			}
+		}
+
 		async Task getLabsMarksAndVisiting()
 		{
-			var statsTest = await DataAccess.GetTestStatistics(_currentSubjectId, _currentGroupId);
-			var stats = await DataAccess.GetStatistics(_currentSubjectId, _currentGroupId);
+			var statsTest = getData(await DataAccess.GetTestStatistics(_currentSubjectId, _currentGroupId));
+			var stats = getData(await DataAccess.GetStatistics(_currentSubjectId, _currentGroupId));
 			var student = findStatsStudent(stats);
 			var studentTest = findTestStudent(statsTest, student?.StudentId);
 
@@ -168,8 +193,8 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 		{
 			StatsModel stats = new StatsModel();
 			LabsVisitingList statsTest = new LabsVisitingList();
-			statsTest = await DataAccess.GetTestPracticialStatistics(_currentSubjectId, _currentGroupId);
-			stats = await DataAccess.GetStatistics(_currentSubjectId, _currentGroupId);
+			statsTest = getData(await DataAccess.GetTestPracticialStatistics(_currentSubjectId, _currentGroupId));
+			stats = getData(await DataAccess.GetStatistics(_currentSubjectId, _currentGroupId));
 			var student = findStatsStudent(stats);
 			var studentTest = findTestStudent(statsTest, student?.StudentId);
 			if (_statisticsPage == StatsPageEnum.LabsRating)
@@ -192,7 +217,7 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 
 		async Task getPracticials(bool isVisiting)
 		{
-			var dataTestPract = await DataAccess.GetPractTest(_currentSubjectId, _currentGroupId);
+			var dataTestPract = getData(await DataAccess.GetPractTest(_currentSubjectId, _currentGroupId));
 			if (isVisiting)
 			{
 				setVisitingPractStatistics(dataTestPract);
@@ -221,7 +246,7 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 
 		async Task getLabs(bool isVisiting)
 		{
-			var dataTestLabs = await DataAccess.GetLabsTest(_currentSubjectId, _currentGroupId);
+			var dataTestLabs = getData(await DataAccess.GetLabsTest(_currentSubjectId, _currentGroupId));
 
 			if (dataTestLabs == null)
 			{
@@ -273,7 +298,7 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 		{
 			LecturesModel visitingData = new LecturesModel();
 
-			var listLectures = await DataAccess.GetInfoLectures(_currentSubjectId);
+			var listLectures = getData(await DataAccess.GetInfoLectures(_currentSubjectId));
 
 			Queue<string> queueTheme = new Queue<string>();
 
@@ -285,7 +310,7 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 				}
 			}
 
-			visitingData = await DataAccess.GetLecturesTest(_currentSubjectId, _currentGroupId);
+			visitingData = getData(await DataAccess.GetLecturesTest(_currentSubjectId, _currentGroupId));
 
 			var groupVisiting = visitingData?.GroupsVisiting?[0];
 

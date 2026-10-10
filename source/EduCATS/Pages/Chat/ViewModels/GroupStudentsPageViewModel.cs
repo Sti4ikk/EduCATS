@@ -2,6 +2,7 @@
 using EduCATS.Pages.Chat.Models;
 using EduCATS.Pages.Chat.Services;
 using System;
+using Nyxbull.Plugins.CrossLocalization;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -68,7 +69,7 @@ namespace EduCATS.Pages.Chat.ViewModels
 
 				if (ChatApiService.IsError)
 				{
-					_services.Dialogs.ShowError("Не удалось загрузить список студентов.");
+					_services.Dialogs.ShowError(CrossLocalization.Translate("chat_students_load_error"));
 				}
 
 				IsEmpty = Students.Count == 0;

@@ -1,5 +1,6 @@
-﻿using EduCATS.Helpers.Forms.Converters;
+using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
+using EduCATS.Pages.Chat.Models;
 using EduCATS.Themes;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -11,16 +12,13 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 	public class GroupChatListViewCell : ViewCell
 	{
 		const double _avatarSize = 50;
-		const double _unreadBadgeSize = 22;
+
+		static readonly Base64ToImageSourceConverter _avatarConverter = new Base64ToImageSourceConverter();
 
 		static Thickness _padding = new Thickness(15, 10);
 
 		public GroupChatListViewCell()
 		{
-			var avatar = createAvatar();
-			var nameLabel = createNameLabel();
-			var unreadBadge = createUnreadBadge();
-
 			var grid = new Grid
 			{
 				Padding = _padding,
@@ -28,14 +26,17 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				ColumnDefinitions = {
 					new ColumnDefinition { Width = GridLength.Auto },
 					new ColumnDefinition { Width = GridLength.Star },
+					new ColumnDefinition { Width = GridLength.Auto },
 					new ColumnDefinition { Width = GridLength.Auto }
 				}
 			};
 
-			grid.Add(avatar, 0, 0);
-			grid.Add(nameLabel, 1, 0);
-			grid.Add(unreadBadge, 2, 0);
+			grid.Add(createAvatar(), 0, 0);
+			grid.Add(createNameLabel(), 1, 0);
+			grid.Add(ChatListCellParts.CreateMarks(), 2, 0);
+			grid.Add(ChatListCellParts.CreateUnreadBadge(), 3, 0);
 
+			ChatListCellParts.AddContextActions(this);
 			View = grid;
 		}
 
@@ -48,7 +49,7 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				HeightRequest = _avatarSize
 			};
 
-			image.SetBinding(Image.SourceProperty, "Img", converter: new Base64ToImageSourceConverter());
+			image.SetBinding(Image.SourceProperty, static (GroupChatModel g) => g.Img, converter: _avatarConverter);
 
 			return new Border
 			{
@@ -71,35 +72,8 @@ namespace EduCATS.Pages.Chat.Views.ViewCells
 				LineBreakMode = LineBreakMode.TailTruncation
 			};
 
-			label.SetBinding(Label.TextProperty, "DisplayName");
+			label.SetBinding(Label.TextProperty, static (GroupChatModel g) => g.DisplayName);
 			return label;
-		}
-
-		Border createUnreadBadge()
-		{
-			var countLabel = new Label
-			{
-				TextColor = Colors.White,
-				FontSize = 12,
-				HorizontalOptions = LayoutOptions.Center,
-				VerticalOptions = LayoutOptions.Center
-			};
-
-			countLabel.SetBinding(Label.TextProperty, "Unread");
-
-			var badge = new Border
-			{
-				WidthRequest = _unreadBadgeSize,
-				HeightRequest = _unreadBadgeSize,
-				VerticalOptions = LayoutOptions.Center,
-				StrokeThickness = 0,
-				StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(_unreadBadgeSize / 2) },
-				BackgroundColor = Color.FromArgb(Theme.Current.AppStatusBarBackgroundColor),
-				Content = countLabel
-			};
-
-			badge.SetBinding(VisualElement.IsVisibleProperty, new Binding("Unread", converter: new UnreadToVisibilityConverter()));
-			return badge;
 		}
 	}
 }

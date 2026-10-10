@@ -1,3 +1,4 @@
+using EduCATS.Controls.RoundedListView;
 using EduCATS.Helpers.Forms;
 using EduCATS.Helpers.Forms.Converters;
 using EduCATS.Helpers.Forms.Styles;
@@ -29,7 +30,7 @@ namespace EduCATS.Pages.Testing.Passing.Views
 		public TestPassingPageView(int testId, bool forSelfStudy)
 		{
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			BindingContext = new TestPassingPageViewModel(new PlatformServices(), testId, forSelfStudy);
+			BindingContext = new TestPassingPageViewModel(PlatformServices.Current, testId, forSelfStudy);
 			this.SetBinding(TitleProperty, "Title");
 			setToolbar();
 			createViews();
@@ -61,13 +62,19 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			var listView = createQuestionList();
 			var buttonLayout = createButtonLayout();
 
-			var mainLayout = new StackLayout
+			var mainLayout = new Grid
 			{
-				Spacing = _spacing,
-				Children = {
-					listView, buttonLayout
+				RowSpacing = _spacing,
+				RowDefinitions =
+				{
+					new RowDefinition { Height = GridLength.Star },
+					new RowDefinition { Height = GridLength.Auto }
 				}
 			};
+
+			// Grid: the list needs a finite height to scroll.
+			mainLayout.Add(listView, 0, 0);
+			mainLayout.Add(buttonLayout, 0, 1);
 
 			mainLayout.SetBinding(IsEnabledProperty, "IsNotLoading");
 			Content = mainLayout;
@@ -123,29 +130,35 @@ namespace EduCATS.Pages.Testing.Passing.Views
 			return button;
 		}
 
-		ListView createQuestionList()
+		CollectionView createQuestionList()
 		{
 			var titleLayout = createTitleLayout();
 
-			var listView = new ListView
+			var listView = new CollectionView
 			{
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
 				Header = titleLayout,
-				HasUnevenRows = true,
-				ItemTemplate = new TestAnswerDataTemplateSelector
+				SelectionMode = SelectionMode.Single,
+				ItemTemplate = CellTemplates.Adapt(new TestAnswerDataTemplateSelector
 				{
 					SingleTemplate = new DataTemplate(typeof(TestSingleAnswerViewCell)),
 					EditableTemplate = new DataTemplate(typeof(TestEditableAnswerViewCell)),
 					MultipleTemplate = new DataTemplate(typeof(TestMultipleAnswerViewCell)),
 					MovableTemplate = new DataTemplate(typeof(TestMovableAnswerViewCell))
-				},
-				SeparatorColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				SeparatorVisibility = SeparatorVisibility.None
+				})
 			};
 
-			listView.ItemTapped += (sender, args) => ((ListView)sender).SelectedItem = null;
-			listView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			listView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Answers");
+			// Every tap toggles an answer: the selection is reset so that
+			// the same answer can be tapped again.
+			listView.SetBinding(SelectableItemsView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			listView.SelectionChanged += (sender, e) =>
+			{
+				if (listView.SelectedItem != null)
+				{
+					listView.SelectedItem = null;
+				}
+			};
+			listView.SetBinding(ItemsView.ItemsSourceProperty, "Answers");
 			return listView;
 		}
 

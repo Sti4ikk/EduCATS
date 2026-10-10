@@ -20,7 +20,7 @@ namespace EduCATS.Pages.Learning.Views
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			Padding = _pagePadding;
-			BindingContext = new LearningPageViewModel(new PlatformServices());
+			BindingContext = new LearningPageViewModel(PlatformServices.Current);
 			createViews();
 		}
 

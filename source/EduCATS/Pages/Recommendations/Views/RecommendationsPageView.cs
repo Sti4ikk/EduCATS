@@ -21,7 +21,7 @@ namespace EduCATS.Pages.Recommendations.Views
 		{
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
-			pageVM = new RecommendationsPageViewModel(new PlatformServices());
+			pageVM = new RecommendationsPageViewModel(PlatformServices.Current);
 			BindingContext = pageVM;
 			createViews();
 		}
@@ -40,15 +40,21 @@ namespace EduCATS.Pages.Recommendations.Views
 			var headerImage = createHeaderImage();
 			var subjectsPickerView = createSubjectsPicker();
 			var listView = createList(subjectsPickerView);
-			Content = new StackLayout
+			// Grid: the list needs a finite height to scroll.
+			var layout = new Grid
 			{
-				Spacing = _spacing,
+				RowSpacing = _spacing,
 				BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor),
-				Children = {
-					headerImage,
-					listView
+				RowDefinitions =
+				{
+					new RowDefinition { Height = GridLength.Auto },
+					new RowDefinition { Height = GridLength.Star }
 				}
 			};
+
+			layout.Add(headerImage, 0, 0);
+			layout.Add(listView, 0, 1);
+			Content = layout;
 		}
 
 		Image createHeaderImage()
@@ -77,11 +83,11 @@ namespace EduCATS.Pages.Recommendations.Views
 				Margin = _listMargin,
 				IsPullToRefreshEnabled = true
 			};
-			listView.ItemSelected += (sender, e) => { ((ListView)sender).SelectedItem = null; };
-			listView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "Recommendations");
-			listView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			listView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
-			listView.SetBinding(ListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
+			listView.ItemSelected += (sender, e) => { ((RoundedListView)sender).SelectedItem = null; };
+			listView.SetBinding(RoundedListView.ItemsSourceProperty, "Recommendations");
+			listView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			listView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
+			listView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem", BindingMode.TwoWay);
 			return listView;
 		}
 	}

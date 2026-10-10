@@ -25,7 +25,7 @@ namespace EduCATS.Pages.Parental.FindGroup.Views
 		{
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			NavigationPage.SetHasNavigationBar(this, false);
-			BindingContext = new FindGroupPageViewModel(new PlatformServices());
+			BindingContext = new FindGroupPageViewModel(PlatformServices.Current);
 			createViews();
 		}
 

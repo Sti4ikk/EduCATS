@@ -46,8 +46,6 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 
 		public SaveMarksPageViewModel(IPlatformServices services, int subjectId, int groupId, string title)
 		{
-			ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => { return true; };
-
 			_titleOfPage = title;
 			_services = services;
 			this.subjectId = subjectId;
@@ -71,6 +69,8 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 
 		async Task initializeData(int subjectId, int groupId)
 		{
+			_dataErrorMessage = null;
+
 			if (_titleOfPage == CrossLocalization.Translate("stats_page_lectures_visiting"))
 			{
 				groupData = await getLecturesVisiting(subjectId, groupId)
@@ -79,41 +79,71 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 			}
 			else if (_titleOfPage == CrossLocalization.Translate("stats_page_labs_visiting"))
 			{
-				labsVisitingList = await DataAccess.GetTestStatistics(subjectId, groupId)
-					?? new LabsVisitingList();
-				_takedLabs = await DataAccess.GetLabsTest(subjectId, groupId)
-					?? new TakedLabs();
+				labsVisitingList = getData(
+					await DataAccess.GetTestStatistics(subjectId, groupId), new LabsVisitingList());
+				_takedLabs = getData(
+					await DataAccess.GetLabsTest(subjectId, groupId), new TakedLabs());
 				createLabsVisitingPage(labsVisitingList);
 			}
-			else if (_titleOfPage == CrossLocalization.Translate("practiÒe_visiting"))
+			else if (_titleOfPage == CrossLocalization.Translate("practi—Åe_visiting"))
 			{
-				practiceVisitingList = await DataAccess.GetTestPracticialStatistics(subjectId, groupId)
-					?? new LabsVisitingList();
-				_takedLabs = await DataAccess.GetPractTest(subjectId, groupId)
-					?? new TakedLabs();
+				practiceVisitingList = getData(
+					await DataAccess.GetTestPracticialStatistics(subjectId, groupId), new LabsVisitingList());
+				_takedLabs = getData(
+					await DataAccess.GetPractTest(subjectId, groupId), new TakedLabs());
 				createPracticialsVisitingPage(practiceVisitingList);
 			}
 		}
 
+		/// <summary>
+		/// Error message of the last failed data request (if any).
+		/// </summary>
+		string _dataErrorMessage;
+
+		/// <summary>
+		/// Get data and remember its error (if any).
+		/// </summary>
+		/// <typeparam name="T">Data type.</typeparam>
+		/// <param name="result">Data result.</param>
+		/// <param name="fallback">Fallback if data is <c>null</c>.</param>
+		/// <returns>Data.</returns>
+		T getData<T>(DataResult<T> result, T fallback)
+		{
+			if (result.IsError && !result.IsConnectionError)
+			{
+				_dataErrorMessage = result.ErrorMessage;
+			}
+
+			return result.Data ?? fallback;
+		}
+
+		/// <summary>
+		/// Shared client: a new one per request opened a new connection
+		/// (and TLS handshake) every time and was never disposed.
+		/// </summary>
+		static readonly HttpClient _lecturesClient = new HttpClient
+		{
+			Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
+		};
+
 		async Task<VisitingLecturesList> getLecturesVisiting(int subjectId, int groupId)
 		{
-			var client = new HttpClient
-			{
-				Timeout = TimeSpan.FromSeconds(RequestController.RequestTimeoutSeconds)
-			};
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_services.Preferences.AccessToken);
-
 			var link = $"{Servers.Current + Links.GetLecturesCalendarData}subjectId={subjectId}&groupId={groupId}";
-			var response = await client.GetAsync(link);
-			var result = await response.Content.ReadAsStringAsync();
+
+			using var request = new HttpRequestMessage(HttpMethod.Get, link);
+			request.Headers.Authorization = new AuthenticationHeaderValue(_services.Preferences.AccessToken);
+
+			// Reading and parsing off the UI thread.
+			using var response = await _lecturesClient.SendAsync(request).ConfigureAwait(false);
+			var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 			return JsonConvert.DeserializeObject<VisitingLecturesList>(result);
 		}
 
 		void showDataAccessErrorIfNeeded()
 		{
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (_dataErrorMessage != null)
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+				_services.Dialogs.ShowError(_dataErrorMessage);
 			}
 		}
 
@@ -287,7 +317,7 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 				labsMarks.dateId = dateId;
 				body = JsonController.ConvertObjectToJson(labsMarks);
 			}
-			else if (_titleOfPage == CrossLocalization.Translate("practiÒe_visiting"))
+			else if (_titleOfPage == CrossLocalization.Translate("practi—Åe_visiting"))
 			{
 				var dateId = 0;
 				SavePracticial savePracticial = new SavePracticial();

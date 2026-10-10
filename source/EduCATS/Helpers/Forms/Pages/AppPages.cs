@@ -273,8 +273,25 @@ namespace EduCATS.Helpers.Forms.Pages
 			}
 			else
 			{
-				await mainPage.Navigation.PushAsync(
-					getNavigationPage(newPage, title));
+				// Pushed as is, not wrapped into another NavigationPage:
+				// iOS shows a bar for each nested navigation page (two bars).
+				if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(newPage.Title))
+				{
+					newPage.Title = title;
+				}
+
+				// The bar with the back button and title is always shown for
+				// pushed pages (some of them hide it for themselves).
+				NavigationPage.SetHasNavigationBar(newPage, true);
+
+				// Hide the tabs before the animation, not after it (MainPageView
+				// updates the visibility once the page is pushed).
+				if (newPage is IHidesTabBar && rootPage is TabbedPage tabbedPage)
+				{
+					TabBarVisibility.PlatformSetVisible?.Invoke(tabbedPage, false);
+				}
+
+				await mainPage.Navigation.PushAsync(newPage);
 			}
 		}
 
@@ -311,9 +328,20 @@ namespace EduCATS.Helpers.Forms.Pages
 		/// </summary>
 		/// <param name="chatId">Chat ID.</param>
 		/// <param name="title">Page title (chat participant's name).</param>
+		/// <param name="peerUserId">Chat participant's ID (for the online status), 0 if unknown.</param>
 		/// <returns>Task.</returns>
-		public async Task OpenConversation(int chatId, string title) =>
-			await pushPage(new ConversationPageView(chatId, title), title);
+		public async Task OpenConversation(int chatId, string title, int peerUserId = 0) =>
+			await pushPage(new ConversationPageView(chatId, title, peerUserId), title);
+
+		/// <summary>
+		/// Open search through messages of all chats.
+		/// </summary>
+		/// <returns>Task.</returns>
+		public async Task OpenChatSearch()
+		{
+			var title = CrossLocalization.Translate("chat_search_all_title");
+			await pushPage(new ChatSearchPageView(title), title);
+		}
 
 		/// <summary>
 		/// Open group (subject) chat conversation page.

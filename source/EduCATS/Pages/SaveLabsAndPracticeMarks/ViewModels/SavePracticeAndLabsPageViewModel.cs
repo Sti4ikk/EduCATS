@@ -53,29 +53,53 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.Views
 
 		async Task initializeData(int subjectId, int groupId)
 		{
+			_dataErrorMessage = null;
+
 			if (_title == CrossLocalization.Translate("practice_mark"))
 			{
-				practiceVisitingList = await DataAccess.GetTestPracticialStatistics(subjectId, groupId)
-					?? new LabsVisitingList();
-				_takedLabs = await DataAccess.GetPractTest(subjectId, groupId)
-					?? new TakedLabs();
+				practiceVisitingList = getData(
+					await DataAccess.GetTestPracticialStatistics(subjectId, groupId), new LabsVisitingList());
+				_takedLabs = getData(
+					await DataAccess.GetPractTest(subjectId, groupId), new TakedLabs());
 				createPracticialsMarksPage(practiceVisitingList);
 			}
 			else if (_title == CrossLocalization.Translate("stats_page_labs_rating"))
 			{
-				labsVisitingList = await DataAccess.GetTestStatistics(subjectId, groupId)
-					?? new LabsVisitingList();
-				_takedLabs = await DataAccess.GetLabsTest(subjectId, groupId)
-					?? new TakedLabs();
+				labsVisitingList = getData(
+					await DataAccess.GetTestStatistics(subjectId, groupId), new LabsVisitingList());
+				_takedLabs = getData(
+					await DataAccess.GetLabsTest(subjectId, groupId), new TakedLabs());
 				createLabsMarksPage(labsVisitingList);
 			}
 		}
 
+		/// <summary>
+		/// Error message of the last failed data request (if any).
+		/// </summary>
+		string _dataErrorMessage;
+
+		/// <summary>
+		/// Get data and remember its error (if any).
+		/// </summary>
+		/// <typeparam name="T">Data type.</typeparam>
+		/// <param name="result">Data result.</param>
+		/// <param name="fallback">Fallback if data is <c>null</c>.</param>
+		/// <returns>Data.</returns>
+		T getData<T>(DataResult<T> result, T fallback)
+		{
+			if (result.IsError && !result.IsConnectionError)
+			{
+				_dataErrorMessage = result.ErrorMessage;
+			}
+
+			return result.Data ?? fallback;
+		}
+
 		void showDataAccessErrorIfNeeded()
 		{
-			if (DataAccess.IsError && !DataAccess.IsConnectionError)
+			if (_dataErrorMessage != null)
 			{
-				_services.Dialogs.ShowError(DataAccess.ErrorMessage);
+				_services.Dialogs.ShowError(_dataErrorMessage);
 			}
 		}
 

@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using Nyxbull.Plugins.CrossLocalization;
 
 namespace EduCATS.Pages.Chat.Models
 {
@@ -24,15 +26,15 @@ namespace EduCATS.Pages.Chat.Models
 
 				if (Date == today)
 				{
-					return "Сегодня";
+					return CrossLocalization.Translate("chat_today");
 				}
 
 				if (Date == today.AddDays(-1))
 				{
-					return "Вчера";
+					return CrossLocalization.Translate("chat_yesterday");
 				}
 
-				return Date.ToString("dd.MM.yyyy");
+				return Date.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
 			}
 		}
 	}

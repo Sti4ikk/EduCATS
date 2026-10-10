@@ -35,10 +35,28 @@ namespace EduCATS.Pages.Statistics.Base.Views
 			NavigationPage.SetHasNavigationBar(this, false);
 			BackgroundColor = Color.FromArgb(Theme.Current.AppBackgroundColor);
 			Padding = _padding;
-			_statsPageViewModel = new StatsPageViewModel(new PlatformServices());
-			_statsPageViewModel.Init();
+			_statsPageViewModel = new StatsPageViewModel(PlatformServices.Current);
 			BindingContext = _statsPageViewModel;
 			createViews();
+		}
+
+		bool _isInitialized;
+
+		/// <summary>
+		/// Data is loaded when the tab is opened for the first time,
+		/// not when the app starts (all tabs are created at once).
+		/// </summary>
+		protected override void OnAppearing()
+		{
+			base.OnAppearing();
+
+			if (_isInitialized || _statsPageViewModel == null)
+			{
+				return;
+			}
+
+			_isInitialized = true;
+			_statsPageViewModel.Init();
 		}
 
 		protected StatsPageView(bool skipInit)
@@ -48,32 +66,24 @@ namespace EduCATS.Pages.Statistics.Base.Views
 		void createViews()
 		{
 			var headerView = createHeaderView();
-			var roundedListView = createRoundedList();
 
-			Content = new ScrollView
-			{
-				Content = new StackLayout
-				{
-					Children = {
-						headerView,
-						roundedListView
-					}
-				}
-			};
+			// The header (subject picker and chart) scrolls with the list:
+			// a list inside a ScrollView can't scroll or virtualize.
+			Content = createRoundedList(headerView);
 		}
 
-		RoundedListView createRoundedList()
+		RoundedListView createRoundedList(View header)
 		{
-			var roundedListView = new RoundedListView(typeof(StatsPageViewCell))
+			var roundedListView = new RoundedListView(typeof(StatsPageViewCell), header: header)
 			{
 				IsPullToRefreshEnabled = true
 			};
 
-			roundedListView.ItemTapped += (sender, e) => ((ListView)sender).SelectedItem = null;
-			roundedListView.SetBinding(ListView.IsRefreshingProperty, "IsLoading");
-			roundedListView.SetBinding(ListView.RefreshCommandProperty, "RefreshCommand");
-			roundedListView.SetBinding(ListView.SelectedItemProperty, "SelectedItem");
-			roundedListView.SetBinding(ItemsView<Cell>.ItemsSourceProperty, "PagesList");
+			roundedListView.ItemTapped += (sender, e) => ((RoundedListView)sender).SelectedItem = null;
+			roundedListView.SetBinding(RoundedListView.IsRefreshingProperty, "IsLoading");
+			roundedListView.SetBinding(RoundedListView.RefreshCommandProperty, "RefreshCommand");
+			roundedListView.SetBinding(RoundedListView.SelectedItemProperty, "SelectedItem");
+			roundedListView.SetBinding(RoundedListView.ItemsSourceProperty, "PagesList");
 			return roundedListView;
 		}
 

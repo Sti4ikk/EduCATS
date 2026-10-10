@@ -146,17 +146,17 @@ namespace EduCATS.Pages.Pickers
 		async Task<IList<SubjectModel>> getSubjects()
 		{
 			var subjects = await DataAccess.GetProfileInfoSubjects(PlatformServices.Preferences.UserLogin);
-			if (DataAccess.IsSessionExpiredError)
+			if (subjects.IsSessionExpiredError)
 			{
 				return null;
 			}
-			else if (DataAccess.IsError)
+			else if (subjects.IsError)
 			{
 				PlatformServices.Device.MainThread(
-					() => PlatformServices.Dialogs.ShowError(DataAccess.ErrorMessage));
+					() => PlatformServices.Dialogs.ShowError(subjects.ErrorMessage));
 			}
 
-			return subjects;
+			return subjects.Data;
 		}
 
 		/// <summary>

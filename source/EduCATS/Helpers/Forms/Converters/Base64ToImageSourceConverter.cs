@@ -11,8 +11,21 @@ namespace EduCATS.Helpers.Forms.Converters
 		private const string _base64Prefix = "data:image/png;base64,";
 		private const string _jpegPrefix = "data:image/jpeg;base64,";
 
-		// Кэшируем готовые ImageSource по их хэш-коду
-		private static readonly Dictionary<int, ImageSource> _imageCache = new Dictionary<int, ImageSource>();
+		/// <summary>
+		/// Decoded images kept in memory: avatars and chat images are bound
+		/// again on every scroll and list refresh.
+		/// </summary>
+		/// <remarks>
+		/// Limited: an unlimited cache kept every image ever shown
+		/// for the whole app lifetime.
+		/// </remarks>
+		private const int _maxCachedImages = 100;
+
+		// Ключ - хэш и длина строки (длина отсекает почти все коллизии хэша).
+		private static readonly Dictionary<(int hash, int length), ImageSource> _imageCache =
+			new Dictionary<(int hash, int length), ImageSource>();
+
+		private static readonly Queue<(int hash, int length)> _cacheOrder = new Queue<(int hash, int length)>();
 		private static readonly object _cacheLock = new object();
 
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -22,8 +35,7 @@ namespace EduCATS.Helpers.Forms.Converters
 				return null;
 			}
 
-			// Быстрый расчет хэша строки вместо SHA256
-			int cacheKey = base64Image.GetHashCode();
+			var cacheKey = (base64Image.GetHashCode(), base64Image.Length);
 
 			lock (_cacheLock)
 			{
@@ -52,7 +64,15 @@ namespace EduCATS.Helpers.Forms.Converters
 
 				lock (_cacheLock)
 				{
-					_imageCache[cacheKey] = imageSource;
+					if (_imageCache.TryAdd(cacheKey, imageSource))
+					{
+						_cacheOrder.Enqueue(cacheKey);
+
+						while (_cacheOrder.Count > _maxCachedImages)
+						{
+							_imageCache.Remove(_cacheOrder.Dequeue());
+						}
+					}
 				}
 
 				return imageSource;

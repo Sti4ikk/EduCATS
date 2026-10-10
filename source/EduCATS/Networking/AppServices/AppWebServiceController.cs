@@ -39,7 +39,7 @@ namespace EduCATS.Networking.AppServices
 
 		public AppWebServiceController(IPlatformServices services = null)
 		{
-			_services = services ?? new PlatformServices();
+			_services = services ?? PlatformServices.Current;
 		}
 
 		public async Task SendRequest(HttpMethod httpMethod, string url, string content = null)
@@ -47,9 +47,10 @@ namespace EduCATS.Networking.AppServices
 			setUpController(url, content);
 			if (_services.Device.CheckConnectivity())
 			{
-				var response = await _restController.SendRequest(httpMethod);
+				// No UI work here: continuations stay on a background thread.
+				using var response = await _restController.SendRequest(httpMethod).ConfigureAwait(false);
 				setStatusCode(response.StatusCode);
-				Json = await response.Content.ReadAsStringAsync();
+				Json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 			}
 			else
 			{

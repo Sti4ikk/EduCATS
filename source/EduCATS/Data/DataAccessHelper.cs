@@ -52,7 +52,12 @@ namespace EduCATS.Data
 		/// <summary>
 		/// Callback to invoke.
 		/// </summary>
-		static Func<Task<KeyValuePair<string, HttpStatusCode>>> _callback;
+		/// <remarks>
+		/// Must be per-instance: a static field would be shared by every
+		/// <c>DataAccess&lt;T&gt;</c> of the same <c>T</c>, so concurrent
+		/// requests could end up awaiting each other's response.
+		/// </remarks>
+		readonly Func<Task<KeyValuePair<string, HttpStatusCode>>> _callback;
 
 		/// <summary>
 		/// Is error occurred.
@@ -100,9 +105,9 @@ namespace EduCATS.Data
 		{
 			_key = key;
 			_messageForError = messageForError;
-			_services = services ?? new PlatformServices();
+			_services = services ?? PlatformServices.Current;
 			_isCaching = !string.IsNullOrEmpty(_key);
-			setCallback(callback);
+			_callback = createCallback(callback);
 		}
 
 		/// <summary>
@@ -119,7 +124,6 @@ namespace EduCATS.Data
 			}
 
 			var response = await _callback();
-			System.Diagnostics.Debug.WriteLine($"=== GetSingle: StatusCode={response.Value}, Body={response.Key}");
 
 			if (response.Value != HttpStatusCode.OK)
 			{
@@ -382,21 +386,18 @@ namespace EduCATS.Data
 		}
 
 		/// <summary>
-		/// Set callback variable.
+		/// Create callback.
 		/// </summary>
 		/// <param name="callback">Callback object.</param>
-		static void setCallback(Task<object> callback)
+		/// <returns>Callback to invoke.</returns>
+		static Func<Task<KeyValuePair<string, HttpStatusCode>>> createCallback(Task<object> callback)
 		{
 			if (callback == null)
 			{
-				_callback = async () => {
-					await Task.Run(() => { });
-					return new KeyValuePair<string, HttpStatusCode>();
-				};
-				return;
+				return () => Task.FromResult(new KeyValuePair<string, HttpStatusCode>());
 			}
 
-			_callback = async () => {
+			return async () => {
 				var result = await callback;
 				return (KeyValuePair<string, HttpStatusCode>)result;
 			};
