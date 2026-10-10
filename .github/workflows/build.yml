@@ -107,7 +107,8 @@ jobs:
 
   build-ios:
     name: Build (iOS simulator)
-    runs-on: macos-latest
+    # macOS 26 image: has Xcode 26.5 (see the pinned workload below).
+    runs-on: macos-26
     needs: test
     # Depends on the Xcode version of the runner image matching the iOS workload.
     continue-on-error: true
@@ -121,14 +122,28 @@ jobs:
         with:
           global-json-file: global.json
 
-      # The iOS workload needs the newest Xcode, not the image's default one.
+      # .NET for iOS needs exactly its Xcode version (major.minor).
+      # The latest iOS workload (27.x) needs Xcode 27, which GitHub runners
+      # don't have yet, so the workload is pinned to 26.5 (the one the app
+      # is developed with) and Xcode 26.5 is selected for it.
+      # Remove the pin when runners get Xcode 27.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.5'
 
-      - name: Install MAUI workload
-        run: dotnet workload install maui-ios
+      - name: Install MAUI workload (pinned)
+        run: |
+          cat > workload-rollback.json <<'JSON'
+          {
+            "microsoft.net.sdk.ios": "26.5.10301/10.0.100",
+            "microsoft.net.sdk.maccatalyst": "26.5.10301/10.0.100",
+            "microsoft.net.sdk.maui": "10.0.20/10.0.100"
+          }
+          JSON
+          dotnet workload config --update-mode manifests
+          dotnet workload install maui-ios --from-rollback-file workload-rollback.json
+          dotnet workload list
 
       # The app is restored and built only for iOS: otherwise restore needs
       # the Android workload too.
