@@ -139,6 +139,42 @@ namespace EduCATS.UnitTests
 		}
 
 		[Test]
+		public async Task NoConnectionIsConnectionErrorNotSessionExpiredTest()
+		{
+			var dataAccess = new DataAccess<object>(_message, null, "9", _mockedOffline);
+			await dataAccess.GetList();
+
+			Assert.IsTrue(dataAccess.IsError);
+			Assert.IsTrue(dataAccess.IsConnectionError);
+			Assert.IsFalse(dataAccess.IsSessionExpiredError);
+		}
+
+		[Test]
+		public async Task ServerErrorIsNotSessionExpiredTest()
+		{
+			var response = Task.FromResult<object>(
+				new KeyValuePair<string, HttpStatusCode>(string.Empty, HttpStatusCode.InternalServerError));
+			var dataAccess = new DataAccess<object>(_message, response, null, _mockedConnected);
+			await dataAccess.GetList();
+
+			Assert.IsTrue(dataAccess.IsError);
+			Assert.IsFalse(dataAccess.IsConnectionError);
+			Assert.IsFalse(dataAccess.IsSessionExpiredError);
+		}
+
+		[Test]
+		public async Task UnauthorizedIsSessionExpiredTest()
+		{
+			var response = Task.FromResult<object>(
+				new KeyValuePair<string, HttpStatusCode>(string.Empty, HttpStatusCode.Unauthorized));
+			var dataAccess = new DataAccess<object>(_message, response, null, _mockedConnected);
+			await dataAccess.GetList();
+
+			Assert.IsTrue(dataAccess.IsError);
+			Assert.IsTrue(dataAccess.IsSessionExpiredError);
+		}
+
+		[Test]
 		public async Task ConcurrentRequestsKeepOwnErrorsTest()
 		{
 			var failedResponse = Task.FromResult<object>(

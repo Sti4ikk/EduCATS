@@ -213,7 +213,7 @@ namespace EduCATS.Data
 		/// <returns>Data in string format (<c>json</c>).</returns>
 		string getCacheAndSetConnectionError()
 		{
-			setError("base_connection_error", true);
+			setError("base_connection_error", isConnectionError: true);
 			return _key == null ? null : getDataFromCache(_key);
 		}
 
@@ -345,7 +345,7 @@ namespace EduCATS.Data
 		/// </param>
 		void setError(
 			string message,
-			bool sessionExpired = true,
+			bool sessionExpired = false,
 			bool isConnectionError = false,
 			bool isRawMessage = false)
 		{

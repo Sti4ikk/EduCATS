@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -11,7 +12,6 @@ using EduCATS.Pages.Statistics.Students.Models;
 using Newtonsoft.Json.Linq;
 using Nyxbull.Plugins.CrossLocalization;
 using Microsoft.Maui.Controls;
-using static System.Net.Mime.MediaTypeNames;
 using System.Net;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -156,26 +156,41 @@ namespace EduCATS.Pages.Settings.Profile.ViewModels
 			Group = isProfessor ? null : _services.Preferences.GroupName;
 			GroupLabel = isProfessor ? null : CrossLocalization.Translate("choose_group");
 			Role = CrossLocalization.Translate(isProfessor ? "role_professor" : "role_student");
-			var profile = (await DataAccess.GetProfileInfo(_username)).Data;
-			if (profile.Name != null)
+
+			try
 			{
-				var fio = profile.Name.Split(' ');
-				SecondName = fio[0];
-				Name = fio[1];
-				Patronymic = fio[2];
-				if (Avatar == "")
+				var profile = (await DataAccess.GetProfileInfo(_username)).Data;
+
+				if (profile == null || string.IsNullOrWhiteSpace(profile.Name))
 				{
-					Initials = SecondName[0] + " " + Name[0];
+					_services.Dialogs.ShowError(CrossLocalization.Translate("today_account_error"));
+					return;
 				}
+
+				// The name may have fewer than three parts (e.g. no patronymic).
+				var fio = profile.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+				SecondName = fio.Length > 0 ? fio[0] : null;
+				Name = fio.Length > 1 ? fio[1] : null;
+				Patronymic = fio.Length > 2 ? string.Join(" ", fio, 2, fio.Length - 2) : null;
+
+				if (string.IsNullOrEmpty(Avatar))
+				{
+					Initials = string.Join(" ",
+						new[] { SecondName, Name }
+							.Where(part => !string.IsNullOrEmpty(part))
+							.Select(part => part[0]));
+				}
+
+				Email = profile.Email;
+				Phone = profile.Phone;
+				AccountInfo = profile.SkypeContact;
+				About = profile.About;
 			}
-			else
+			catch (Exception ex)
 			{
-				_services.Dialogs.ShowError(CrossLocalization.Translate("today_account_error"));
+				// async void: an exception here would crash the app.
+				AppLogs.Log(ex, nameof(setInitData));
 			}
-			Email = profile.Email;
-			Phone = profile.Phone;
-			AccountInfo = profile.SkypeContact;
-			About = profile.About;
 		}
 	}
 }

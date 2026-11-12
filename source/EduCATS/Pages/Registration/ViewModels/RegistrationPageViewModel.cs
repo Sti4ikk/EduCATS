@@ -69,7 +69,7 @@ namespace EduCATS.Pages.Registration.ViewModels
 				string.IsNullOrEmpty(Name) ||
 				string.IsNullOrEmpty(Surname) ||
 				ReferenceEquals(Group, null) ||
-				ReferenceEquals(SelectedQuestionId, 0) ||
+				string.IsNullOrEmpty(QuestionId) ||
 				string.IsNullOrEmpty(AnswerToSecretQuestion))
 			{
 				return false;
