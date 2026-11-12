@@ -154,3 +154,20 @@ jobs:
           -p:OnlyTargetFramework=net10.0-ios
           -p:RuntimeIdentifier=iossimulator-arm64
           -p:EnableCodeSigning=false
+
+      # Starts the built app on a simulator: a crash on start fails the step.
+      # The console output, crash report, app log and a screenshot are in the
+      # ios-smoke-logs artifact. Covers the start only (the login page).
+      - name: Launch on simulator (smoke test)
+        timeout-minutes: 15
+        run: |
+          APP_PATH="$(find ./source/EduCATS.MAUI/bin/Release/net10.0-ios/iossimulator-arm64 -maxdepth 1 -name '*.app' | head -n 1)"
+          bash ./scripts/ios_smoke_launch.sh "$APP_PATH" ./ios-smoke
+
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-smoke-logs
+          path: ./ios-smoke
+          if-no-files-found: ignore
