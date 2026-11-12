@@ -78,8 +78,13 @@ xcrun simctl list devices available | grep "$UDID" || true
 xcrun simctl boot "$UDID" 2> /dev/null || true
 xcrun simctl bootstatus "$UDID" -b || fail "the simulator did not boot."
 
-# The CI build is not signed; arm64 simulators need at least an ad-hoc signature.
-codesign --force --deep --sign - "$APP_PATH" > "$OUT_DIR/codesign.log" 2>&1 || true
+# The bundle is installed as it was built (the build signs it ad hoc) and
+# is not signed again here. The signature check is only logged.
+{
+  codesign --display --verbose=2 "$APP_PATH"
+  codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+  echo "codesign verify exit code: $?"
+} > "$OUT_DIR/codesign.log" 2>&1 || true
 
 if ! xcrun simctl install "$UDID" "$APP_PATH" > "$OUT_DIR/install.log" 2>&1; then
   cat "$OUT_DIR/install.log"

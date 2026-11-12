@@ -186,3 +186,6 @@ FakesAssemblies/
 .vscode/settings.json
 
 mono_crash*
+
+# iOS smoke test logs (scripts/ios_smoke_launch.sh)
+ios-smoke/
