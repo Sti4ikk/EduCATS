@@ -150,13 +150,13 @@ namespace EduCATS.Pages.ForgotPassword.ViewModels
 					}
 
 					var result = await VerifyPostAsync(UserName, SelectedQuestionId, AnswerToSecretQuestion);
-					if (JsonConvert.DeserializeObject<string>(result.Key) == "Пользователь не найден!")
+					if (JsonConvert.DeserializeObject<string>(result.Key) == "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ!")
 					{
 						_services.Dialogs.ShowError(CrossLocalization.Translate("no_user"));
 						return Task.FromResult<object>(null);
 					}
 
-					if (JsonConvert.DeserializeObject<string>(result.Key) == "Введен неверный секретный ответ")
+					if (JsonConvert.DeserializeObject<string>(result.Key) == "Р’РІРµРґРµРЅ РЅРµРІРµСЂРЅС‹Р№ СЃРµРєСЂРµС‚РЅС‹Р№ РѕС‚РІРµС‚")
 					{
 						_services.Dialogs.ShowError(CrossLocalization.Translate("invaild_answer"));
 						return Task.FromResult<object>(null);
@@ -171,7 +171,7 @@ namespace EduCATS.Pages.ForgotPassword.ViewModels
 							CrossLocalization.Translate("successful_password_change"));
 						await _services.Navigation.ClosePage(false);
 					}
-					else if (JsonConvert.DeserializeObject<string>(result.Key) == "Пароль данного пользвателя не может быть восстановлен!")
+					else if (JsonConvert.DeserializeObject<string>(result.Key) == "РџР°СЂРѕР»СЊ РґР°РЅРЅРѕРіРѕ РїРѕР»СЊР·РІР°С‚РµР»СЏ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅ!")
 					{
 						_services.Dialogs.ShowMessage(CrossLocalization.Translate("base_error"),
 							CrossLocalization.Translate("not_recovered_password_changed"));

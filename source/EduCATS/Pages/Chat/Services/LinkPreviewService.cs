@@ -22,6 +22,8 @@ namespace EduCATS.Pages.Chat.Services
 		/// </summary>
 		const int _maxHtmlBytes = 256 * 1024;
 
+		const int _maxCachedPreviews = 500;
+
 		static readonly TimeSpan _timeout = TimeSpan.FromSeconds(6);
 
 		static readonly HttpClient _client = createClient();
@@ -49,6 +51,12 @@ namespace EduCATS.Pages.Chat.Services
 				(uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
 			{
 				return Task.FromResult<LinkPreviewModel>(null);
+			}
+
+			// The cache lives as long as the app: keep it from growing without limit.
+			if (_cache.Count >= _maxCachedPreviews)
+			{
+				_cache.Clear();
 			}
 
 			return _cache.GetOrAdd(uri.AbsoluteUri, _ => loadAsync(uri));

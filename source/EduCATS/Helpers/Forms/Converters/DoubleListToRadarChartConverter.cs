@@ -16,7 +16,7 @@ namespace EduCATS.Helpers.Forms.Converters
 
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			// Syncfusion SfPolarChart требует минимум 2 точки — иначе NullRef в DrawSecondaryAxisGridLine
+			// Syncfusion SfPolarChart С‚СЂРµР±СѓРµС‚ РјРёРЅРёРјСѓРј 2 С‚РѕС‡РєРё вЂ” РёРЅР°С‡Рµ NullRef РІ DrawSecondaryAxisGridLine
 			var fallback = new ChartSeriesCollection
 	{
 		new PolarLineSeries
@@ -36,7 +36,7 @@ namespace EduCATS.Helpers.Forms.Converters
 			if (value is not List<StatsChartEntryModel> metrics || metrics.Count == 0)
 				return fallback;
 
-			// Если пришла всего одна точка — тоже используем fallback
+			// Р•СЃР»Рё РїСЂРёС€Р»Р° РІСЃРµРіРѕ РѕРґРЅР° С‚РѕС‡РєР° вЂ” С‚РѕР¶Рµ РёСЃРїРѕР»СЊР·СѓРµРј fallback
 			if (metrics.Count < 2)
 				return fallback;
 

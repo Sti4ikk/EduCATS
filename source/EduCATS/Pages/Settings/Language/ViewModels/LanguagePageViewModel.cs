@@ -94,10 +94,10 @@ namespace EduCATS.Pages.Settings.Language.ViewModels
 			try {
 				var supportedLanguages = new List<Nyxbull.Plugins.CrossLocalization.Language>(CrossLocalization.GetSupportedLanguages());
 
-				if (supportedLanguages[3].LanguageLocal.Contains("Беларуская"))
+				if (supportedLanguages[3].LanguageLocal.Contains("Р‘РµР»Р°СЂСѓСЃРєР°СЏ"))
 				{
-					if (!supportedLanguages[3].LanguageLocal.Contains("мова"))
-						supportedLanguages[3].LanguageLocal += " мова";
+					if (!supportedLanguages[3].LanguageLocal.Contains("РјРѕРІР°"))
+						supportedLanguages[3].LanguageLocal += " РјРѕРІР°";
 
 					var tempLanguage = supportedLanguages[2];
 					supportedLanguages[2] = supportedLanguages[3];

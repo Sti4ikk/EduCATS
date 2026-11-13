@@ -312,7 +312,7 @@ namespace EduCATS.Pages.Statistics.Results.ViewModels
 
 			visitingData = getData(await DataAccess.GetLecturesTest(_currentSubjectId, _currentGroupId));
 
-			var groupVisiting = visitingData?.GroupsVisiting?[0];
+			var groupVisiting = visitingData?.GroupsVisiting?.FirstOrDefault();
 
 			var userLecturesVisiting = groupVisiting?.LecturesVisiting
 				.FirstOrDefault(v => isSameUser(v.StudentName, v.Login, _currentUserName, _currentUserLogin));

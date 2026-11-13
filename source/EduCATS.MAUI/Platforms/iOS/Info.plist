@@ -29,6 +29,14 @@
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
 
+	<!-- The local server option (http://172.16.11.72, see Servers.cs) has no TLS:
+	     plain HTTP is allowed for local network addresses only. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Для совершения аудиозвонков приложению требуется доступ к микрофону.</string>
 

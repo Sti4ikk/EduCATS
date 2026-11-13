@@ -52,9 +52,7 @@ namespace EduCATS.Data.Models
 
 		public override int GetHashCode()
 		{
-			int hashId = Id == null ? 0 : Id.GetHashCode();
-
-			return hashId;
+			return Id.GetHashCode();
 		}
 	}
 }

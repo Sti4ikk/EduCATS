@@ -12,7 +12,11 @@
 		<Nullable>enable</Nullable>
 		<ApplicationTitle>EduCATS</ApplicationTitle>
 		<ApplicationId>com.companyname.educats.maui</ApplicationId>
+		<!-- The app version is kept in the VERSION file in the repository root.
+		     (The update check compares it with the store version.) -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<_AppVersionFile>$(MSBuildThisFileDirectory)..\..\VERSION</_AppVersionFile>
+		<ApplicationDisplayVersion Condition="Exists('$(_AppVersionFile)')">$([System.IO.File]::ReadAllText('$(_AppVersionFile)').Trim())</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 		<WindowsPackageType>None</WindowsPackageType>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>

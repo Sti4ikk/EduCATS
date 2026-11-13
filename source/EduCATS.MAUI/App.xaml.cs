@@ -63,6 +63,27 @@ namespace EduCATS.MAUI
 		/// </summary>
 		void onRequestedThemeChanged(object sender, AppThemeChangedEventArgs e)
 		{
+			// iOS switches light/dark and back while the app goes to background
+			// (snapshots for the app switcher): pages must not be rebuilt for that.
+			// A real change is applied on resume.
+			if (_isInBackground)
+			{
+				return;
+			}
+
+			applySystemTheme();
+		}
+
+		/// <summary>
+		/// Is the app in background (between sleep and resume).
+		/// </summary>
+		bool _isInBackground;
+
+		/// <summary>
+		/// Apply the system light/dark mode if the theme follows the system.
+		/// </summary>
+		void applySystemTheme()
+		{
 			if (_services.Preferences.Theme != EduCATS.Themes.AppTheme.ThemeSystem)
 			{
 				return;
@@ -90,6 +111,7 @@ namespace EduCATS.MAUI
 		protected override void OnSleep()
 		{
 			base.OnSleep();
+			_isInBackground = true;
 
 			// The system may kill the app in the background.
 			EduCATS.Helpers.Logs.AppLogs.Flush();
@@ -98,6 +120,18 @@ namespace EduCATS.MAUI
 		protected override void OnResume()
 		{
 			base.OnResume();
+			_isInBackground = false;
+
+			// The system theme may have changed while the app was in background.
+			try
+			{
+				applySystemTheme();
+			}
+			catch (Exception ex)
+			{
+				EduCATS.Helpers.Logs.AppLogs.Log(ex);
+			}
+
 			_ = AppSession.OnAppResumed(_services);
 		}
 

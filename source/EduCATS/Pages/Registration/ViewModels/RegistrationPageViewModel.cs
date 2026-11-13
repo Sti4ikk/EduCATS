@@ -120,7 +120,7 @@ namespace EduCATS.Pages.Registration.ViewModels
 				{
 					if (!(
 						((nameOfUser[i] >= 'a') && (nameOfUser[i] <= 'z')) || ((nameOfUser[i] >= 'A') && (nameOfUser[i] <= 'Z')) ||
-						((nameOfUser[i] >= '‡') && (nameOfUser[i] <= 'ˇ')) || ((nameOfUser[i] >= '¿') && (nameOfUser[i] <= 'ﬂ')) ||
+						((nameOfUser[i] >= '–∞') && (nameOfUser[i] <= '—è')) || ((nameOfUser[i] >= '–ê') && (nameOfUser[i] <= '–Ø')) ||
 						((nameOfUser[i] == '_') || (nameOfUser[i] == ' ') || (nameOfUser[i] == '-')) ||
 						(nameOfUser[i] >= '0' && nameOfUser[i] <= '9')))
 					{
@@ -172,7 +172,7 @@ namespace EduCATS.Pages.Registration.ViewModels
 					bool correctName = CheckNameOfUser(Name);
 					bool correctSurname = CheckNameOfUser(Surname);
 					bool secretAnswer = CheckNameOfUser(AnswerToSecretQuestion);
-					if (Patronymic != null)
+					if (!string.IsNullOrEmpty(Patronymic))
 					{
 						correctPatronymic = CheckNameOfUser(Patronymic);
 					}
@@ -241,7 +241,7 @@ namespace EduCATS.Pages.Registration.ViewModels
 						return Task.FromResult<object>(null);
 					}
 
-					if (Patronymic != null && (Patronymic[0] == ' ' || Patronymic[Patronymic.Length - 1] == ' '))
+					if (!string.IsNullOrEmpty(Patronymic) && (Patronymic[0] == ' ' || Patronymic[Patronymic.Length - 1] == ' '))
 					{
 						_services.Dialogs.ShowMessage(CrossLocalization.Translate("not_corrected_data"),
 							CrossLocalization.Translate("delete_spaces"));

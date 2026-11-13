@@ -54,6 +54,15 @@ namespace EduCATS.Pages.Chat.Services
 		static void OnIncomingCall(int chatId)
 		{
 			Initialize();
+
+			// Busy with a call in another chat: the new one must not replace it.
+			if (State != CallState.Idle && CurrentChatId.HasValue && CurrentChatId != chatId)
+			{
+				EduCATS.Helpers.Logs.AppLogs.Log(
+					$"Incoming call in chat {chatId} ignored: busy with chat {CurrentChatId}.", nameof(CallService));
+				return;
+			}
+
 			CurrentChatId = chatId;
 			SetState(CallState.Incoming);
 			IncomingCall?.Invoke(chatId);
