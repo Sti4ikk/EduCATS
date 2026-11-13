@@ -131,7 +131,16 @@ namespace EduCATS.Pages.SaveMarks.ViewModels
 			var link = $"{Servers.Current + Links.GetLecturesCalendarData}subjectId={subjectId}&groupId={groupId}";
 
 			using var request = new HttpRequestMessage(HttpMethod.Get, link);
-			request.Headers.Authorization = new AuthenticationHeaderValue(_services.Preferences.AccessToken);
+
+			// Added as is (like other requests): AuthenticationHeaderValue throws
+			// for an empty token and for a token with a scheme ("Bearer ...").
+			var accessToken = _services.Preferences.AccessToken?.Trim();
+
+			if (!string.IsNullOrEmpty(accessToken))
+			{
+				request.Headers.TryAddWithoutValidation("Authorization", accessToken);
+			}
+
 
 			// Reading and parsing off the UI thread.
 			using var response = await _lecturesClient.SendAsync(request).ConfigureAwait(false);

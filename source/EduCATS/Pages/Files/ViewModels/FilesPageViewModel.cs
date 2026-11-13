@@ -344,8 +344,15 @@ namespace EduCATS.Pages.Files.ViewModels
 				return;
 			}
 
+			if (e.Error != null)
+			{
+				AppLogs.Log(e.Error);
+			}
+
+			// Without Content-Length the byte counters say nothing,
+			// so a failed request is detected by its error.
 			var lengthKnown = totalBytes > 0;
-			var succeeded = !lengthKnown || totalBytes == bytesIn;
+			var succeeded = e.Error == null && (!lengthKnown || totalBytes == bytesIn);
 
 			if (!succeeded)
 			{

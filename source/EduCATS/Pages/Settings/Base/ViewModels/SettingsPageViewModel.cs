@@ -244,22 +244,46 @@ namespace EduCATS.Pages.Settings.Base.ViewModels
 		{
 			try
 			{
-				_services.Dialogs.ShowLoading(CrossLocalization.Translate("settings_delete_process"));
-				await DataAccess.DeleteAccount();
+				string errorMessage = null;
+
+				try
+				{
+					_services.Dialogs.ShowLoading(CrossLocalization.Translate("settings_delete_process"));
+					var result = await DataAccess.DeleteAccount();
+
+					if (result.IsError)
+					{
+						errorMessage = result.ErrorMessage;
+					}
+				}
+				catch (Exception ex)
+				{
+					AppLogs.Log(ex);
+					errorMessage = CrossLocalization.Translate("base_something_went_wrong");
+				}
+				finally
+				{
+					_services.Dialogs.HideLoading();
+				}
+
+				// The account is reported as deleted (and the user is logged out)
+				// only if the server accepted the request.
+				if (errorMessage != null)
+				{
+					_services.Dialogs.ShowError(errorMessage);
+					return;
+				}
+
+				await _services.Dialogs.ShowConfirmation(
+					CrossLocalization.Translate("base_completed"),
+					CrossLocalization.Translate("settings_delete_success"));
+				resetData();
 			}
 			catch (Exception ex)
 			{
+				// async void: an exception here would crash the app.
 				AppLogs.Log(ex);
-				return;
 			}
-			finally
-			{
-				_services.Dialogs.HideLoading();
-			}
-			await _services.Dialogs.ShowConfirmation(
-						CrossLocalization.Translate("base_completed"),
-						CrossLocalization.Translate("settings_delete_success"));
-			resetData();
 		}
 
 		void resetData()

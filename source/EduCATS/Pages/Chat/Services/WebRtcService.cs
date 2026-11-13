@@ -188,10 +188,11 @@ namespace EduCATS.Pages.Chat.Services
 
 			try
 			{
-				dynamic obj = JsonConvert.DeserializeObject(candidateJson);
+				// JObject, not dynamic: the dynamic binder is unreliable on iOS (no JIT).
+				var obj = Newtonsoft.Json.Linq.JObject.Parse(candidateJson);
 
 				// Кандидат может прийти без candidate-строки (end-of-candidates) — пропускаем такие
-				string candidateStr = obj.candidate;
+				var candidateStr = (string)obj["candidate"];
 				if (string.IsNullOrEmpty(candidateStr))
 				{
 					AppLogs.Log("Получен пустой/end-of-candidates кандидат — пропускаем.", "WebRTC");
@@ -201,10 +202,10 @@ namespace EduCATS.Pages.Chat.Services
 				var init = new RTCIceCandidateInit
 				{
 					candidate = candidateStr,
-					sdpMid = obj.sdpMid,
+					sdpMid = (string)obj["sdpMid"],
 					// Защита от null — раньше здесь падало с NullReferenceException,
 					// если браузер присылал кандидата без sdpMLineIndex
-					sdpMLineIndex = obj.sdpMLineIndex != null ? (ushort)obj.sdpMLineIndex : (ushort)0
+					sdpMLineIndex = (ushort)((int?)obj["sdpMLineIndex"] ?? 0)
 				};
 
 				if (_peerConnection != null && _remoteDescriptionSet)

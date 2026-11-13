@@ -50,7 +50,9 @@ namespace EduCATS.Pages.SaveLabsAndPracticeMarks.ViewModels
 			}
 			_services = services;
 			_takedLabs = prOrLabStat;
-			SelectedShortName = nameofLabOrPr[0];
+			// The list is empty if the subject has no labs or practicals yet.
+			nameofLabOrPr ??= new List<string>();
+			SelectedShortName = nameofLabOrPr.Count > 0 ? nameofLabOrPr[0] : null;
 			NameOfLabOrPr = nameofLabOrPr;
 			setMarks(SelectedShortName);
 		}

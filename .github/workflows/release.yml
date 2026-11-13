@@ -1,10 +1,11 @@
 name: release
 
+# Manual start only: the release pipeline is still the Xamarin one
+# (it builds EduCATS.iOS / EduCATS.Android, which the MAUI project doesn't have)
+# and failed on every push to main. Bring "push: main" back once it is
+# rewritten for MAUI.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 env:
   ARTIFACTS_DIRECTORY: ./artifacts
@@ -15,7 +16,9 @@ permissions:
 
 jobs:
   pre_release:
-    uses: ilyalehchylin/educats-xamarin/.github/workflows/pre-release.yml@develop
+    # The copy in this repository: with "secrets: inherit" the secrets must not
+    # go to a workflow in another repository (and its mutable branch).
+    uses: ./.github/workflows/pre-release.yml
     secrets: inherit
 
   create_release_tag:

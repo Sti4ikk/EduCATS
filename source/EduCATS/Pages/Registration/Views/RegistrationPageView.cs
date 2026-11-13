@@ -50,7 +50,16 @@ namespace EduCATS.Pages.Registration.Views
 
 		async void setGroupData()
 		{
-			groupData = (await DataAccess.GetGroupsData()).Data;
+			try
+			{
+				groupData = (await DataAccess.GetGroupsData()).Data;
+			}
+			catch (Exception ex)
+			{
+				// async void: an exception here would crash the app.
+				EduCATS.Helpers.Logs.AppLogs.Log(ex);
+			}
+
 			createView();
 		}
 

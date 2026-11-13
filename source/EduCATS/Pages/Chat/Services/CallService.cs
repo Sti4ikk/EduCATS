@@ -54,6 +54,15 @@ namespace EduCATS.Pages.Chat.Services
 		static void OnIncomingCall(int chatId)
 		{
 			Initialize();
+
+			// Busy with a call in another chat: the new one must not replace it.
+			if (State != CallState.Idle && CurrentChatId.HasValue && CurrentChatId != chatId)
+			{
+				EduCATS.Helpers.Logs.AppLogs.Log(
+					$"Incoming call in chat {chatId} ignored: busy with chat {CurrentChatId}.", nameof(CallService));
+				return;
+			}
+
 			CurrentChatId = chatId;
 			SetState(CallState.Incoming);
 			IncomingCall?.Invoke(chatId);
@@ -98,34 +107,82 @@ namespace EduCATS.Pages.Chat.Services
 		{
 			if (CurrentChatId != chatId) return;
 
-			CurrentConnectionId = connectionId;
-			SetState(CallState.Connecting);
+			// async void: an exception here would crash the app.
+			try
+			{
+				CurrentConnectionId = connectionId;
+				SetState(CallState.Connecting);
 
-			await WebRtcService.InitPeerConnection(connectionId);
-			var offerSdp = await WebRtcService.CreateOffer();
-			await ChatHubService.SendOffer(chatId, offerSdp, connectionId);
+				await WebRtcService.InitPeerConnection(connectionId);
+				var offerSdp = await WebRtcService.CreateOffer();
+				await ChatHubService.SendOffer(chatId, offerSdp, connectionId);
+			}
+			catch (Exception ex)
+			{
+				failCall(ex);
+			}
+		}
+
+		/// <summary>
+		/// The call can't be set up: log the error and end the call.
+		/// </summary>
+		static void failCall(Exception ex)
+		{
+			EduCATS.Helpers.Logs.AppLogs.Log(ex, nameof(CallService));
+
+			try
+			{
+				SetState(CallState.Ended);
+				Reset();
+			}
+			catch (Exception resetException)
+			{
+				EduCATS.Helpers.Logs.AppLogs.Log(resetException, nameof(CallService));
+			}
 		}
 
 		static async void OnOfferReceived(int chatId, string offerSdp, string connectionId)
 		{
 			if (CurrentChatId != chatId) return;
 
-			CurrentConnectionId = connectionId;
-			SetState(CallState.Connecting);
+			try
+			{
+				CurrentConnectionId = connectionId;
+				SetState(CallState.Connecting);
 
-			await WebRtcService.InitPeerConnection(connectionId);
-			var answerSdp = await WebRtcService.CreateAnswer(offerSdp);
-			await ChatHubService.SendAnswer(answerSdp, connectionId);
+				await WebRtcService.InitPeerConnection(connectionId);
+				var answerSdp = await WebRtcService.CreateAnswer(offerSdp);
+				await ChatHubService.SendAnswer(answerSdp, connectionId);
+			}
+			catch (Exception ex)
+			{
+				failCall(ex);
+			}
 		}
 
 		static async void OnAnswerReceived(string answerSdp, string connectionId)
 		{
-			await WebRtcService.SetRemoteAnswer(answerSdp);
+			try
+			{
+				await WebRtcService.SetRemoteAnswer(answerSdp);
+			}
+			catch (Exception ex)
+			{
+				failCall(ex);
+			}
 		}
 
 		static async void OnIceCandidateReceived(string candidateJson, string connectionId)
 		{
-			await WebRtcService.AddIceCandidate(candidateJson);
+			try
+			{
+				await WebRtcService.AddIceCandidate(candidateJson);
+			}
+			catch (Exception ex)
+			{
+				// One bad candidate doesn't end the call.
+				EduCATS.Helpers.Logs.AppLogs.Log(ex, nameof(CallService));
+			}
 		}
 
 		static void OnCallRejected(int chatId, string message)

@@ -9,10 +9,9 @@ on:
       app_build_number:
         description: "The application build number"
         value: ${{ jobs.prepare_build.outputs.incremented_build_number }}
+  # Manual start only (no "push: develop"): this is still the Xamarin pipeline,
+  # it can't build the MAUI project.
   workflow_dispatch:
-  push:
-    branches:
-      - develop
 
 env:
   ARTIFACTS_DIRECTORY: ./artifacts

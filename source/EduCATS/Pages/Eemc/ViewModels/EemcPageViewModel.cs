@@ -165,7 +165,9 @@ namespace EduCATS.Pages.Eemc.ViewModels
 				await SetupSubjects();
 				await setRootConcepts();
 
-				if (_searchId == -1 || _backupRootConceptsWithoutChildren == null)
+				if (_searchId == -1 ||
+					_backupRootConceptsWithoutChildren == null ||
+					_backupRootConceptsWithoutChildren.Count == 0)
 				{
 					return;
 				}

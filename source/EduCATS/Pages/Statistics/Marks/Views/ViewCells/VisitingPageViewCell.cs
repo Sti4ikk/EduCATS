@@ -93,9 +93,9 @@ namespace EduCATS.Pages.Statistics.Marks.Views.ViewCells
 				VerticalOptions = LayoutOptions.Center,
 				ColumnDefinitions =
 		{
-			new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },   // колонка 0
-            new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },   // колонка 1 (не используется)
-            new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }    // колонка 2 — для picker и entry
+			new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },   // РєРѕР»РѕРЅРєР° 0
+            new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },   // РєРѕР»РѕРЅРєР° 1 (РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ)
+            new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }    // РєРѕР»РѕРЅРєР° 2 вЂ” РґР»СЏ picker Рё entry
         }
 			};
 
@@ -105,7 +105,7 @@ namespace EduCATS.Pages.Statistics.Marks.Views.ViewCells
 			gridLayout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 			gridLayout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-			// Добавление элементов (MAUI-способ)
+			// Р”РѕР±Р°РІР»РµРЅРёРµ СЌР»РµРјРµРЅС‚РѕРІ (MAUI-СЃРїРѕСЃРѕР±)
 			gridLayout.Add(inicials, 0, 0);
 			gridLayout.Add(markLabel, 0, 1);
 			gridLayout.Add(markPicker, 2, 1);

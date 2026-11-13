@@ -274,7 +274,7 @@ namespace EduCATS.Pages.Testing.Passing.ViewModels
 				a => new TestPassingAnswerModel(a, _questionType) {
 					DownMovableAnswerCommand = new Command(ExecuteDownMovableAnswerCommand),
 					UpMovableAnswerCommand = new Command(ExecuteUpMovableAnswerCommand)
-				}).ToList();
+				}).ToList() ?? new List<TestPassingAnswerModel>();
 
 			if (_questionType < 2 && answersList.Count > 0) {
 				answersList[0].IsSelected = true;

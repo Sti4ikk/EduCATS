@@ -210,6 +210,10 @@ namespace EduCATS.Pages.Login.ViewModels
 			catch (Exception ex)
 			{
 				AppLogs.Log(ex);
+
+				// The loading dialog must not stay on the screen forever.
+				setLoading(false);
+				_services.Dialogs.ShowError(CrossLocalization.Translate("base_something_went_wrong"));
 			}
 		}
 
