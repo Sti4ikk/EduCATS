@@ -34,7 +34,7 @@ namespace EduCATS.Pages.Login.Views
 
 		static Thickness _loginFormPadding = new(20, 0);
 		static Thickness _baseSpacing = new(0, 10, 0, 0);
-		static Thickness _iosSettingsMargin = new(20, 60);
+		static Thickness _iosSettingsMargin = new(20, 30, 20, 60);
 		static Thickness _androidSettingsMargin = new(30, 40, 14, 30);
 		static Thickness _showPasswordIconMargin = new(0, 10, 5, 0);
 

@@ -18,7 +18,7 @@ namespace EduCATS.Pages.Parental.FindGroup.Views
 
 		static Thickness _groupNumberFormPadding = new Thickness(20, 0);
 		static Thickness _baseSpacing = new Thickness(0, 10, 0, 0);
-		static Thickness _iosSettingsMargin = new Thickness(20, 60);
+		static Thickness _iosSettingsMargin = new Thickness(20, 30, 20, 60);
 		static Thickness _androidSettingsMargin = new Thickness(30);
 
 		public FindGroupPageView()
